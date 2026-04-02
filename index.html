@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zecipes">
+<meta name="theme-color" content="#1c1a17">
+<link rel="apple-touch-icon" href="https://fakeimg.pl/180x180/1c1a17/b85c2a?text=Z&font_size=100">
+<title>Zecipes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:    #faf7f2;
+  --paper:    #f3ede3;
+  --ink:      #1c1a17;
+  --muted:    #7a7060;
+  --accent:   #b85c2a;
+  --accent-l: #f0ddd3;
+  --border:   #e0d8cc;
+  --white:    #ffffff;
+  --radius:   14px;
+  --shadow:   0 2px 20px rgba(28,26,23,0.10);
+  --safe-top: env(safe-area-inset-top);
+  --safe-bot: env(safe-area-inset-bottom);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  overscroll-behavior: none;
+}
+
+/* ── Lock screen ── */
+#lockScreen {
+  position: fixed; inset: 0; z-index: 999;
+  background: var(--ink);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 32px;
+  padding-top: calc(32px + var(--safe-top));
+}
+
+.lock-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.4rem; color: var(--cream);
+  margin-bottom: 6px; text-align: center;
+  letter-spacing: -0.01em;
+}
+.lock-logo .ze { color: var(--accent); font-style: italic; }
+.lock-logo .cipes { color: var(--cream); font-style: normal; }
+
+.lock-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 36px; text-align: center; }
+
+.lock-input {
+  width: 100%; max-width: 320px;
+  padding: 14px 18px; border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07) !important;
+  color: var(--cream) !important;
+  font-size: 1rem;
+  font-family: 'DM Sans', sans-serif;
+  outline: none; text-align: center;
+  letter-spacing: 0.15em; margin-bottom: 14px;
+  transition: border-color 0.15s;
+  -webkit-text-fill-color: var(--cream);
+  caret-color: var(--cream);
+}
+/* Fix iOS autofill white background */
+.lock-input:-webkit-autofill,
+.lock-input:-webkit-autofill:hover,
+.lock-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 100px #2a2720 inset !important;
+  -webkit-text-fill-color: var(--cream) !important;
+  border-color: rgba(255,255,255,0.15);
+}
+.lock-input:focus { border-color: var(--accent); }
+.lock-input::placeholder { letter-spacing: 0; color: rgba(255,255,255,0.3); -webkit-text-fill-color: rgba(255,255,255,0.3); }
+
+.lock-btn {
+  width: 100%; max-width: 320px;
+  padding: 14px; border-radius: 10px;
+  background: var(--accent); color: #fff;
+  border: none; font-size: 1rem; font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: background 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.lock-btn:active { background: #a04e24; }
+.lock-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.lock-spinner {
+  width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.7s linear infinite; display: none;
+}
+.lock-btn.loading .lock-spinner { display: block; }
+.lock-error { margin-top: 12px; font-size: 0.82rem; color: #e07070; min-height: 18px; text-align: center; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── App shell ── */
+#app { display: none; height: 100vh; flex-direction: column; }
+#app.visible { display: flex; }
+
+/* ── Header ── */
+header {
+  background: var(--ink); color: var(--cream);
+  padding: 0 20px;
+  padding-top: var(--safe-top);
+  height: calc(56px + var(--safe-top));
+  display: flex; align-items: flex-end; padding-bottom: 12px;
+  justify-content: space-between;
+  flex-shrink: 0; position: relative; z-index: 10;
+}
+.header-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem; font-weight: 400;
+}
+.header-title .ze { color: var(--accent); font-style: italic; }
+.header-title .cipes { color: var(--cream); }
+
+.header-right { display: flex; gap: 8px; align-items: center; }
+.icon-btn {
+  background: rgba(255,255,255,0.1); border: none;
+  color: var(--cream); width: 36px; height: 36px;
+  border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; font-size: 1rem;
+  transition: background 0.15s;
+}
+.icon-btn:active { background: rgba(255,255,255,0.2); }
+
+/* ── Search bar ── */
+.search-bar { background: var(--ink); padding: 0 16px 12px; display: none; }
+.search-bar.open { display: block; }
+.search-bar input {
+  width: 100%; padding: 10px 14px;
+  border-radius: 10px; border: none;
+  background: rgba(255,255,255,0.12);
+  color: var(--cream); font-size: 0.95rem;
+  font-family: 'DM Sans', sans-serif; outline: none;
+}
+.search-bar input::placeholder { color: rgba(255,255,255,0.4); }
+
+/* ── Scroll area ── */
+.scroll-area {
+  flex: 1; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(88px + var(--safe-bot));
+}
+
+/* ── Category chips ── */
+.chip-row {
+  display: flex; gap: 8px; padding: 14px 16px 6px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.chip-row::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0; padding: 6px 14px;
+  border-radius: 99px; font-size: 0.82rem; font-weight: 500;
+  border: 1.5px solid var(--border); background: var(--white);
+  color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── Recipe list ── */
+.recipe-list { padding: 8px 16px; display: flex; flex-direction: column; gap: 10px; }
+.recipe-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.recipe-card:active { transform: scale(0.985); background: var(--paper); }
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.card-category { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.card-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; line-height: 1.3; color: var(--ink); }
+.card-arrow { color: var(--muted); font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+.card-meta { display: flex; gap: 14px; font-size: 0.78rem; color: var(--muted); }
+
+/* ── Empty ── */
+.empty { text-align: center; padding: 64px 24px; color: var(--muted); }
+.empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.35; }
+.empty h3 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--ink); margin-bottom: 8px; }
+.empty p { font-size: 0.88rem; line-height: 1.5; }
+
+/* ── Detail view ── */
+.detail-view {
+  display: none; position: fixed; inset: 0;
+  background: var(--cream); z-index: 50; flex-direction: column;
+}
+.detail-view.open { display: flex; animation: slideUp 0.22s ease; }
+.detail-header {
+  background: var(--ink); color: var(--cream);
+  padding: 0 16px 12px; padding-top: var(--safe-top);
+  display: flex; align-items: flex-end;
+  justify-content: space-between; flex-shrink: 0; gap: 12px;
+  min-height: calc(56px + var(--safe-top));
+}
+.detail-back {
+  background: rgba(255,255,255,0.1); border: none;
+  color: var(--cream); padding: 7px 14px;
+  border-radius: 99px; font-size: 0.85rem;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.detail-back:active { background: rgba(255,255,255,0.2); }
+.detail-header-actions { display: flex; gap: 8px; }
+.detail-scroll {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 24px 20px calc(40px + var(--safe-bot));
+}
+.detail-category { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.detail-title { font-family: 'Playfair Display', serif; font-size: 1.9rem; line-height: 1.15; margin-bottom: 18px; }
+.detail-meta-row {
+  display: flex; margin-bottom: 24px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; background: var(--white);
+}
+.meta-cell {
+  flex: 1; padding: 12px 8px; text-align: center;
+  border-right: 1px solid var(--border); font-size: 0.78rem; color: var(--muted);
+}
+.meta-cell:last-child { border-right: none; }
+.meta-cell strong { display: block; font-size: 1rem; color: var(--ink); margin-bottom: 2px; font-weight: 500; }
+.detail-source { font-size: 0.78rem; color: var(--muted); margin-bottom: 20px; }
+.detail-source a { color: var(--accent); text-decoration: none; }
+.section-title {
+  font-family: 'Playfair Display', serif; font-size: 1.15rem;
+  margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--accent-l);
+}
+.ingredients-list { list-style: none; margin-bottom: 32px; }
+.ingredients-list li {
+  padding: 11px 0; border-bottom: 1px solid var(--border);
+  font-size: 0.95rem; display: flex; align-items: baseline; gap: 10px; line-height: 1.4;
+}
+.ingredients-list li::before { content: '·'; color: var(--accent); font-size: 1.4rem; flex-shrink: 0; line-height: 0.6; }
+.steps-list { list-style: none; margin-bottom: 32px; counter-reset: steps; }
+.steps-list li {
+  counter-increment: steps; padding: 16px 0 16px 52px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.95rem; line-height: 1.7; position: relative;
+}
+.steps-list li::before {
+  content: counter(steps); position: absolute; left: 0; top: 16px;
+  width: 32px; height: 32px; background: var(--accent); color: #fff;
+  border-radius: 50%; font-size: 0.8rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.qty { font-weight: 600; color: var(--accent); }
+.notes-box {
+  background: var(--paper); border-left: 3px solid var(--accent);
+  padding: 14px 16px; border-radius: 0 10px 10px 0;
+  font-size: 0.88rem; line-height: 1.65; color: var(--muted); margin-bottom: 32px;
+}
+
+/* ── FAB ── */
+.fab-wrap {
+  position: fixed; right: 20px; bottom: calc(20px + var(--safe-bot));
+  z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+}
+.fab {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; font-size: 1.6rem;
+  cursor: pointer; box-shadow: 0 4px 20px rgba(184,92,42,0.4);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s, background 0.15s; position: relative; z-index: 2;
+}
+.fab:active { background: #a04e24; }
+.fab.open { transform: rotate(45deg); }
+.fab-menu {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  opacity: 0; pointer-events: none; transform: translateY(8px); transition: all 0.18s;
+}
+.fab-menu.open { opacity: 1; pointer-events: all; transform: translateY(0); }
+.fab-item { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.fab-item-label {
+  background: var(--ink); color: var(--cream); padding: 6px 14px;
+  border-radius: 99px; font-size: 0.85rem; white-space: nowrap; box-shadow: var(--shadow);
+}
+.fab-item-icon {
+  width: 42px; height: 42px; border-radius: 50%; background: var(--ink); color: var(--cream);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; box-shadow: var(--shadow); flex-shrink: 0;
+}
+
+/* ── Modals ── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(28,26,23,0.55); z-index: 200;
+  align-items: flex-end; justify-content: center;
+}
+.overlay.open { display: flex; animation: fadeIn 0.15s ease; }
+.modal {
+  background: var(--white); border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto;
+  padding: 12px 20px calc(20px + var(--safe-bot));
+  animation: sheetUp 0.22s ease;
+}
+.modal-pill { width: 40px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
+.modal-title { font-family: 'Playfair Display', serif; font-size: 1.35rem; margin-bottom: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+label { font-size: 0.78rem; font-weight: 500; color: var(--muted); }
+input[type=text], input[type=url], input[type=number], textarea {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.95rem;
+  color: var(--ink); background: var(--cream); outline: none;
+  transition: border-color 0.15s; -webkit-appearance: none;
+}
+input:focus, textarea:focus { border-color: var(--accent); background: #fff; }
+textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.btn {
+  width: 100%; padding: 14px; border-radius: 10px; border: none;
+  font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:active { background: #a04e24; }
+.btn-outline { background: transparent; color: var(--ink); border: 1.5px solid var(--border); }
+.btn-outline:active { background: var(--paper); }
+.btn-danger { background: transparent; color: #c0392b; border: 1.5px solid #e8c4c0; }
+.btn-danger:active { background: #fdf0ef; }
+#importStatus { font-size: 0.85rem; color: var(--muted); min-height: 18px; margin-top: 4px; text-align: center; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: calc(24px + var(--safe-bot)); left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--ink); color: var(--cream);
+  padding: 11px 22px; border-radius: 99px; font-size: 0.85rem;
+  z-index: 999; opacity: 0; transition: all 0.2s; pointer-events: none; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: #c0392b; }
+
+@media print {
+  #lockScreen, header, .fab-wrap, .detail-header { display: none !important; }
+  .detail-scroll { padding: 0; }
+}
+
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sheetUp { from { transform: translateY(40px); } to { transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- ── Lock Screen ── -->
+<div id="lockScreen">
+  <h1 class="lock-logo"><span class="ze">Ze</span><span class="cipes">cipes</span></h1>
+  <p class="lock-sub">Your private recipe book</p>
+  <input class="lock-input" type="password" id="lockInput" placeholder="Password" autocomplete="current-password">
+  <button class="lock-btn" id="lockBtn" onclick="unlock()">
+    <div class="lock-spinner"></div>
+    <span id="lockBtnText">Enter</span>
+  </button>
+  <div class="lock-error" id="lockError"></div>
+</div>
+
+<!-- ── App ── -->
+<div id="app">
+  <header>
+    <div class="header-title"><span class="ze">Ze</span><span class="cipes">cipes</span></div>
+    <div class="header-right">
+      <button class="icon-btn" onclick="toggleSearch()">🔍</button>
+    </div>
+  </header>
+
+  <div class="search-bar" id="searchBar">
+    <input type="text" id="searchInput" placeholder="Search recipes, ingredients…" oninput="applyFilters()">
+  </div>
+
+  <div class="scroll-area" id="scrollArea">
+    <div class="chip-row" id="chipRow"></div>
+    <div class="recipe-list" id="recipeList">
+      <div class="empty"><div class="empty-icon">⏳</div><h3>Loading…</h3></div>
+    </div>
+  </div>
+
+  <div class="fab-wrap">
+    <div class="fab-menu" id="fabMenu">
+      <div class="fab-item" onclick="openImportModal()">
+        <div class="fab-item-label">Import from URL</div>
+        <div class="fab-item-icon">⬇️</div>
+      </div>
+      <div class="fab-item" onclick="openAddModal()">
+        <div class="fab-item-label">Add manually</div>
+        <div class="fab-item-icon">✏️</div>
+      </div>
+    </div>
+    <button class="fab" id="fab" onclick="toggleFab()">+</button>
+  </div>
+</div>
+
+<!-- ── Detail view ── -->
+<div class="detail-view" id="detailView">
+  <div class="detail-header">
+    <button class="detail-back" onclick="closeDetail()">← Back</button>
+    <div class="detail-header-actions">
+      <button class="icon-btn" onclick="window.print()">🖨</button>
+      <button class="icon-btn" onclick="editCurrent()">✏️</button>
+      <button class="icon-btn" onclick="deleteCurrent()">🗑</button>
+    </div>
+  </div>
+  <div class="detail-scroll" id="detailScroll"></div>
+</div>
+
+<!-- ── Add/Edit Modal ── -->
+<div class="overlay" id="recipeModal">
+  <div class="modal">
+    <div class="modal-pill"></div>
+    <div class="modal-title" id="modalTitle">New Recipe</div>
+    <div class="form-group">
+      <label>Title *</label>
+      <input type="text" id="f_title" placeholder="e.g. Caldo Verde">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Category</label>
+        <input type="text" id="f_category" placeholder="e.g. Soup">
+      </div>
+      <div class="form-group">
+        <label>Servings</label>
+        <input type="text" id="f_servings" placeholder="e.g. 4">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Prep time</label>
+        <input type="text" id="f_prep" placeholder="e.g. 15 min">
+      </div>
+      <div class="form-group">
+        <label>Cook time</label>
+        <input type="text" id="f_cook" placeholder="e.g. 30 min">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Ingredients (one per line)</label>
+      <textarea id="f_ingredients" rows="6" placeholder="200g chorizo&#10;4 large potatoes&#10;1 bunch kale…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Instructions (one step per line)</label>
+      <textarea id="f_instructions" rows="7" placeholder="Sauté the chorizo until crispy.&#10;Add potatoes and cover with stock…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="f_notes" rows="3" placeholder="Tips, substitutions, variations…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Source URL</label>
+      <input type="url" id="f_url" placeholder="https://…">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveBtn" onclick="saveRecipe()">Save Recipe</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Import Modal ── -->
+<div class="overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-pill"></div>
+    <div class="modal-title">Import from URL</div>
+    <p style="font-size:0.88rem;color:var(--muted);margin-bottom:16px;">Paste a recipe URL and we'll extract everything automatically — including quantities woven into the steps.</p>
+    <div class="form-group">
+      <label>Recipe URL</label>
+      <input type="url" id="importUrl" placeholder="https://…">
+    </div>
+    <div id="importStatus"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="importBtn" onclick="runImport()">Import Recipe</button>
+      <button class="btn btn-outline" onclick="closeImportModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycby8uQ8BJiA_-9ZLJtqHqogNMncv2kOwlbV3lzOshr5ErajZNqMtAOz6DwBn1aJG7X3c/exec';
+const SESSION_KEY = 'zecipes_auth';
+
+let allRecipes     = [];
+let activeCategory = null;
+let currentId      = null;
+let editingId      = null;
+let fabOpen        = false;
+let searchOpen     = false;
+
+// ── Lock ──────────────────────────────────────────────────
+async function unlock() {
+  const pw = document.getElementById('lockInput').value.trim();
+  if (!pw) return;
+  const btn = document.getElementById('lockBtn');
+  const btnText = document.getElementById('lockBtnText');
+  btn.classList.add('loading'); btn.disabled = true;
+  btnText.textContent = 'Checking…';
+  try {
+    const res  = await fetch(SCRIPT_URL + '?action=checkPassword&pw=' + encodeURIComponent(pw));
+    const data = await res.json();
+    if (data.success) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      document.getElementById('lockScreen').style.display = 'none';
+      document.getElementById('app').classList.add('visible');
+      document.getElementById('scrollArea').scrollTop = 0;
+      loadRecipes();
+    } else {
+      document.getElementById('lockError').textContent = 'Incorrect password. Try again.';
+      document.getElementById('lockInput').value = '';
+      btn.classList.remove('loading'); btn.disabled = false;
+      btnText.textContent = 'Enter';
+    }
+  } catch(e) {
+    document.getElementById('lockError').textContent = 'Connection error — check your deployment URL.';
+    btn.classList.remove('loading'); btn.disabled = false;
+    btnText.textContent = 'Enter';
+  }
+}
+document.getElementById('lockInput').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
+
+window.onload = () => {
+  if (sessionStorage.getItem(SESSION_KEY)) {
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    document.getElementById('scrollArea').scrollTop = 0;
+    loadRecipes();
+  }
+};
+
+// ── Data ──────────────────────────────────────────────────
+async function loadRecipes() {
+  try {
+    const res  = await fetch(SCRIPT_URL + '?action=list');
+    const data = await res.json();
+    allRecipes = data.recipes || [];
+    buildChips(); renderList(allRecipes);
+    document.getElementById('scrollArea').scrollTop = 0;
+  } catch(e) {
+    document.getElementById('recipeList').innerHTML =
+      '<div class="empty"><div class="empty-icon">⚠️</div><h3>Couldn\'t load recipes</h3><p>Check your connection and try again.</p></div>';
+  }
+}
+
+// ── Chips ─────────────────────────────────────────────────
+function buildChips() {
+  const cats = [...new Set(allRecipes.map(r => r.category || 'Other'))].sort();
+  document.getElementById('chipRow').innerHTML =
+    `<div class="chip active" onclick="filterCat(null,this)">All</div>` +
+    cats.map(c => `<div class="chip" onclick="filterCat('${c}',this)">${c}</div>`).join('');
+}
+
+function filterCat(cat, el) {
+  activeCategory = cat;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  let list = allRecipes;
+  if (activeCategory) list = list.filter(r => (r.category || 'Other') === activeCategory);
+  if (q) list = list.filter(r =>
+    r.title.toLowerCase().includes(q) ||
+    (r.ingredients || '').toLowerCase().includes(q) ||
+    (r.category    || '').toLowerCase().includes(q)
+  );
+  renderList(list);
+}
+
+// ── List ──────────────────────────────────────────────────
+function renderList(recipes) {
+  const el = document.getElementById('recipeList');
+  if (!recipes.length) {
+    const empty = allRecipes.length === 0;
+    el.innerHTML = `<div class="empty">
+      <div class="empty-icon">${empty ? '📖' : '🔍'}</div>
+      <h3>${empty ? 'Zecipes is empty' : 'No recipes found'}</h3>
+      <p>${empty ? 'Tap + to add your first recipe.' : 'Try a different search or category.'}</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = '';
+  recipes.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'recipe-card';
+    card.onclick = () => openDetail(r.id);
+    card.innerHTML = `
+      <div class="card-top">
+        <div>
+          ${r.category ? `<div class="card-category">${r.category}</div>` : ''}
+          <div class="card-title">${r.title}</div>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+      <div class="card-meta">
+        ${r.servings  ? `<span>🍽 ${r.servings}</span>`  : ''}
+        ${r.prep_time ? `<span>⏱ ${r.prep_time}</span>` : ''}
+        ${r.cook_time ? `<span>🔥 ${r.cook_time}</span>` : ''}
+      </div>`;
+    el.appendChild(card);
+  });
+}
+
+// ── Detail ────────────────────────────────────────────────
+function openDetail(id) {
+  const r = allRecipes.find(x => x.id === id);
+  if (!r) return;
+  currentId = id; closeFab();
+
+  const ingredients  = (r.ingredients  || '').split('\n').filter(Boolean);
+  const instructions = (r.instructions || '').split('\n').filter(Boolean);
+  const steps        = weaveQuantities(instructions, ingredients);
+
+  const ingHtml = ingredients.length
+    ? `<ul class="ingredients-list">${ingredients.map(i => `<li>${i}</li>`).join('')}</ul>`
+    : '<p style="color:var(--muted);margin-bottom:32px">No ingredients listed.</p>';
+
+  const stepsHtml = steps.length
+    ? `<ol class="steps-list">${steps.map(s => `<li>${s}</li>`).join('')}</ol>`
+    : '<p style="color:var(--muted);margin-bottom:32px">No instructions listed.</p>';
+
+  let sourceHost = '';
+  try { sourceHost = new URL(r.source_url).hostname; } catch(e) {}
+
+  document.getElementById('detailScroll').innerHTML = `
+    ${r.category ? `<div class="detail-category">${r.category}</div>` : ''}
+    <h1 class="detail-title">${r.title}</h1>
+    ${(r.servings || r.prep_time || r.cook_time) ? `
+    <div class="detail-meta-row">
+      ${r.servings  ? `<div class="meta-cell"><strong>${r.servings}</strong>serves</div>`  : ''}
+      ${r.prep_time ? `<div class="meta-cell"><strong>${r.prep_time}</strong>prep</div>`   : ''}
+      ${r.cook_time ? `<div class="meta-cell"><strong>${r.cook_time}</strong>cook</div>`   : ''}
+    </div>` : ''}
+    ${r.source_url ? `<div class="detail-source">Source: <a href="${r.source_url}" target="_blank">${sourceHost}</a></div>` : ''}
+    <h2 class="section-title">Ingredients</h2>${ingHtml}
+    <h2 class="section-title">Method</h2>${stepsHtml}
+    ${r.notes ? `<h2 class="section-title">Notes</h2><div class="notes-box">${r.notes}</div>` : ''}
+  `;
+
+  document.getElementById('detailView').classList.add('open');
+  document.getElementById('detailScroll').scrollTop = 0;
+}
+
+function weaveQuantities(steps, ingredients) {
+  return steps.map(step => {
+    let result = step;
+    ingredients.forEach(ing => {
+      const match = ing.match(/^([\d\/\.\s¼½¾⅓⅔]+(?:g|kg|ml|l|cups?|tbsp|tsp|oz|lb|cloves?|large|small|medium|bunch|handful|pinch|slices?|pieces?|cans?|tins?)?[\s]*)/i);
+      if (!match) return;
+      const qty  = match[1].trim();
+      const name = ing.slice(match[0].length).split(',')[0].trim().toLowerCase();
+      if (!name || name.length < 3) return;
+      const regex = new RegExp(`\\b(${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'i');
+      if (regex.test(result) && !result.includes(`(${qty})`)) {
+        result = result.replace(regex, `$1 <span class="qty">(${qty})</span>`);
+      }
+    });
+    return result;
+  });
+}
+
+function closeDetail() { document.getElementById('detailView').classList.remove('open'); currentId = null; }
+function editCurrent()   { if (currentId) openEditModal(currentId); }
+function deleteCurrent() { if (currentId) confirmDelete(currentId); }
+
+// ── FAB ───────────────────────────────────────────────────
+function toggleFab() {
+  fabOpen = !fabOpen;
+  document.getElementById('fab').classList.toggle('open', fabOpen);
+  document.getElementById('fabMenu').classList.toggle('open', fabOpen);
+}
+function closeFab() {
+  fabOpen = false;
+  document.getElementById('fab').classList.remove('open');
+  document.getElementById('fabMenu').classList.remove('open');
+}
+document.getElementById('scrollArea').addEventListener('click', closeFab);
+
+// ── Search ────────────────────────────────────────────────
+function toggleSearch() {
+  searchOpen = !searchOpen;
+  document.getElementById('searchBar').classList.toggle('open', searchOpen);
+  if (searchOpen) document.getElementById('searchInput').focus();
+  else { document.getElementById('searchInput').value = ''; applyFilters(); }
+}
+
+// ── Add / Edit ────────────────────────────────────────────
+function openAddModal() {
+  closeFab(); editingId = null;
+  document.getElementById('modalTitle').textContent = 'New Recipe';
+  document.getElementById('saveBtn').textContent = 'Save Recipe';
+  ['title','category','servings','prep','cook','ingredients','instructions','notes','url']
+    .forEach(f => document.getElementById('f_' + f).value = '');
+  document.getElementById('recipeModal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const r = allRecipes.find(x => x.id === id);
+  if (!r) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Recipe';
+  document.getElementById('saveBtn').textContent = 'Save Changes';
+  document.getElementById('f_title').value        = r.title        || '';
+  document.getElementById('f_category').value     = r.category     || '';
+  document.getElementById('f_servings').value     = r.servings     || '';
+  document.getElementById('f_prep').value         = r.prep_time    || '';
+  document.getElementById('f_cook').value         = r.cook_time    || '';
+  document.getElementById('f_ingredients').value  = r.ingredients  || '';
+  document.getElementById('f_instructions').value = r.instructions || '';
+  document.getElementById('f_notes').value        = r.notes        || '';
+  document.getElementById('f_url').value          = r.source_url   || '';
+  document.getElementById('recipeModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('recipeModal').classList.remove('open'); }
+
+async function saveRecipe() {
+  const title = document.getElementById('f_title').value.trim();
+  if (!title) { showToast('Please add a title.', true); return; }
+  const recipe = {
+    title,
+    category:     document.getElementById('f_category').value.trim(),
+    servings:     document.getElementById('f_servings').value.trim(),
+    prep_time:    document.getElementById('f_prep').value.trim(),
+    cook_time:    document.getElementById('f_cook').value.trim(),
+    ingredients:  document.getElementById('f_ingredients').value.trim(),
+    instructions: document.getElementById('f_instructions').value.trim(),
+    notes:        document.getElementById('f_notes').value.trim(),
+    source_url:   document.getElementById('f_url').value.trim(),
+  };
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    const action = editingId ? 'update' : 'add';
+    if (editingId) recipe.id = editingId;
+    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action, recipe }) });
+    const data = await res.json();
+    if (data.success) {
+      closeModal(); await loadRecipes();
+      if (editingId) openDetail(editingId);
+      showToast(editingId ? 'Recipe updated ✓' : 'Recipe saved ✓');
+    } else { showToast('Something went wrong.', true); }
+  } catch(e) { showToast('Network error.', true); }
+  btn.textContent = editingId ? 'Save Changes' : 'Save Recipe';
+  btn.disabled = false;
+}
+
+// ── Delete ────────────────────────────────────────────────
+function confirmDelete(id) {
+  const r = allRecipes.find(x => x.id === id);
+  if (!r || !confirm(`Delete "${r.title}"?`)) return;
+  doDelete(id);
+}
+async function doDelete(id) {
+  try {
+    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id }) });
+    const data = await res.json();
+    if (data.success) { closeDetail(); await loadRecipes(); showToast('Recipe deleted.'); }
+    else showToast('Could not delete.', true);
+  } catch(e) { showToast('Network error.', true); }
+}
+
+// ── Import ────────────────────────────────────────────────
+function openImportModal() {
+  closeFab();
+  document.getElementById('importUrl').value = '';
+  document.getElementById('importStatus').textContent = '';
+  document.getElementById('importModal').classList.add('open');
+}
+function closeImportModal() { document.getElementById('importModal').classList.remove('open'); }
+
+async function runImport() {
+  const url = document.getElementById('importUrl').value.trim();
+  if (!url) { showToast('Please paste a URL.', true); return; }
+  const btn = document.getElementById('importBtn');
+  const status = document.getElementById('importStatus');
+  btn.textContent = 'Importing…'; btn.disabled = true;
+  status.textContent = 'Fetching and parsing — takes about 10 seconds…';
+  try {
+    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'import', url }) });
+    const data = await res.json();
+    if (data.success) {
+      closeImportModal(); editingId = null;
+      document.getElementById('modalTitle').textContent = 'Review Imported Recipe';
+      document.getElementById('saveBtn').textContent = 'Save Recipe';
+      document.getElementById('f_title').value        = data.recipe.title        || '';
+      document.getElementById('f_category').value     = data.recipe.category     || '';
+      document.getElementById('f_servings').value     = data.recipe.servings     || '';
+      document.getElementById('f_prep').value         = data.recipe.prep_time    || '';
+      document.getElementById('f_cook').value         = data.recipe.cook_time    || '';
+      document.getElementById('f_ingredients').value  = data.recipe.ingredients  || '';
+      document.getElementById('f_instructions').value = data.recipe.instructions || '';
+      document.getElementById('f_notes').value        = data.recipe.notes        || '';
+      document.getElementById('f_url').value          = data.recipe.source_url   || '';
+      document.getElementById('recipeModal').classList.add('open');
+      showToast('Imported — review and save ✓');
+    } else { status.textContent = '⚠ ' + data.error; }
+  } catch(e) { status.textContent = '⚠ Network error. Try again.'; }
+  btn.textContent = 'Import Recipe'; btn.disabled = false;
+}
+
+// ── Toast ─────────────────────────────────────────────────
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) { closeModal(); closeImportModal(); } });
+});
+
+// PWA manifest
+const manifest = {
+  name: 'Zecipes', short_name: 'Zecipes',
+  start_url: window.location.href, display: 'standalone',
+  background_color: '#faf7f2', theme_color: '#1c1a17',
+  icons: [{ src: 'https://fakeimg.pl/192x192/1c1a17/b85c2a?text=Z&font_size=100', sizes: '192x192', type: 'image/png' }]
+};
+const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+const link = document.createElement('link');
+link.rel = 'manifest'; link.href = URL.createObjectURL(blob);
+document.head.appendChild(link);
+</script>
+</body>
+</html>
