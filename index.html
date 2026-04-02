@@ -680,12 +680,8 @@ window.onload = () => {
 // ── Data ──────────────────────────────────────────────────
 async function loadRecipes() {
   try {
-    const formData = new FormData();
-    formData.append('action', 'importText');
-    formData.append('url', url);
-    formData.append('text', text);
-    const res = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
-    data = await res.json();
+    const res  = await fetch(SCRIPT_URL + '?action=list');
+    const data = await res.json();
     allRecipes = data.recipes || [];
     buildChips(); renderList(allRecipes);
     requestAnimationFrame(() => {
@@ -969,8 +965,11 @@ async function runImport() {
       const url = document.getElementById('importUrl').value.trim();
       if (!url) { showToast('Please paste a URL.', true); btn.textContent = 'Import Recipe'; btn.disabled = false; return; }
       status.textContent = 'Fetching and parsing — takes about 10 seconds…';
-      const res = await fetch(SCRIPT_URL + '?action=import&url=' + encodeURIComponent(url));
-      data = await res.json();
+      const formData = new FormData();
+      formData.append('action', 'importText');
+      formData.append('url', url);
+      formData.append('text', text);
+      const res = await fetch(SCRIPT_URL, { method: 'POST', body: formData });      data = await res.json();
 
       // Auto-fallback: if blocked, switch to paste tab with a message
       if (!data.success && (data.error || '').toLowerCase().includes('blocked')) {
