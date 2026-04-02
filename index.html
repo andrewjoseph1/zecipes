@@ -558,12 +558,46 @@ textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
 <div class="overlay" id="importModal">
   <div class="modal">
     <div class="modal-pill"></div>
-    <div class="modal-title">Import from URL</div>
-    <p style="font-size:0.88rem;color:var(--muted);margin-bottom:16px;">Paste a recipe URL and we'll extract everything automatically — including quantities woven into the steps.</p>
-    <div class="form-group">
-      <label>Recipe URL</label>
-      <input type="url" id="importUrl" placeholder="https://…">
+    <div class="modal-title">Import Recipe</div>
+
+    <!-- Tab switcher -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <button id="tabUrl" onclick="switchImportTab('url')"
+        style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;">
+        From URL
+      </button>
+      <button id="tabText" onclick="switchImportTab('text')"
+        style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;">
+        Paste text
+      </button>
     </div>
+
+    <!-- URL tab -->
+    <div id="importUrlTab">
+      <p style="font-size:0.88rem;color:var(--muted);margin-bottom:16px;">
+        Paste a recipe URL and we'll extract everything automatically.
+      </p>
+      <div class="form-group">
+        <label>Recipe URL</label>
+        <input type="url" id="importUrl" placeholder="https://…">
+      </div>
+    </div>
+
+    <!-- Paste text tab -->
+    <div id="importTextTab" style="display:none;">
+      <p style="font-size:0.88rem;color:var(--muted);margin-bottom:16px;">
+        On the recipe page, select all text (<strong>⌘A</strong> or <strong>Ctrl+A</strong>), copy it, then paste below. Works on any site.
+      </p>
+      <div class="form-group">
+        <label>Source URL (optional)</label>
+        <input type="url" id="importTextUrl" placeholder="https://… (for reference)">
+      </div>
+      <div class="form-group">
+        <label>Paste page text</label>
+        <textarea id="importText" rows="7" placeholder="Paste the recipe page text here…"></textarea>
+      </div>
+    </div>
+
     <div id="importStatus"></div>
     <div class="form-actions">
       <button class="btn btn-primary" id="importBtn" onclick="runImport()">Import Recipe</button>
@@ -890,24 +924,68 @@ async function doDelete(id) {
 }
 
 // ── Import ────────────────────────────────────────────────
+let importTab = 'url';
+
+function switchImportTab(tab) {
+  importTab = tab;
+  document.getElementById('importUrlTab').style.display  = tab === 'url'  ? 'block' : 'none';
+  document.getElementById('importTextTab').style.display = tab === 'text' ? 'block' : 'none';
+  const urlBtn  = document.getElementById('tabUrl');
+  const textBtn = document.getElementById('tabText');
+  if (tab === 'url') {
+    urlBtn.style.cssText  += ';background:var(--accent);border-color:var(--accent);color:#fff;';
+    textBtn.style.cssText += ';background:transparent;border-color:var(--border);color:var(--muted);';
+  } else {
+    textBtn.style.cssText += ';background:var(--accent);border-color:var(--accent);color:#fff;';
+    urlBtn.style.cssText  += ';background:transparent;border-color:var(--border);color:var(--muted);';
+  }
+  document.getElementById('importStatus').textContent = '';
+}
+
 function openImportModal() {
   closeFab();
-  document.getElementById('importUrl').value = '';
+  document.getElementById('importUrl').value     = '';
+  document.getElementById('importText').value    = '';
+  document.getElementById('importTextUrl').value = '';
   document.getElementById('importStatus').textContent = '';
+  switchImportTab('url');
   document.getElementById('importModal').classList.add('open');
 }
 function closeImportModal() { document.getElementById('importModal').classList.remove('open'); }
 
 async function runImport() {
-  const url = document.getElementById('importUrl').value.trim();
-  if (!url) { showToast('Please paste a URL.', true); return; }
-  const btn = document.getElementById('importBtn');
+  const btn    = document.getElementById('importBtn');
   const status = document.getElementById('importStatus');
   btn.textContent = 'Importing…'; btn.disabled = true;
-  status.textContent = 'Fetching and parsing — takes about 10 seconds…';
+
   try {
-    const res  = await fetch(SCRIPT_URL + '?action=import&url=' + encodeURIComponent(url));
-    const data = await res.json();
+    let data;
+
+    if (importTab === 'url') {
+      const url = document.getElementById('importUrl').value.trim();
+      if (!url) { showToast('Please paste a URL.', true); btn.textContent = 'Import Recipe'; btn.disabled = false; return; }
+      status.textContent = 'Fetching and parsing — takes about 10 seconds…';
+      const res = await fetch(SCRIPT_URL + '?action=import&url=' + encodeURIComponent(url));
+      data = await res.json();
+
+      // Auto-fallback: if blocked, switch to paste tab with a message
+      if (!data.success && (data.error || '').toLowerCase().includes('blocked')) {
+        switchImportTab('text');
+        document.getElementById('importTextUrl').value = url;
+        status.textContent = '⚠ That site blocked the fetch. Paste the page text below instead.';
+        btn.textContent = 'Import Recipe'; btn.disabled = false;
+        return;
+      }
+
+    } else {
+      const text = document.getElementById('importText').value.trim();
+      const url  = document.getElementById('importTextUrl').value.trim();
+      if (!text) { showToast('Please paste some text.', true); btn.textContent = 'Import Recipe'; btn.disabled = false; return; }
+      status.textContent = 'Parsing recipe from text…';
+      const res = await fetch(SCRIPT_URL + '?action=importText&url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text));
+      data = await res.json();
+    }
+
     if (data.success) {
       closeImportModal(); editingId = null;
       document.getElementById('modalTitle').textContent = 'Review Imported Recipe';
@@ -923,8 +1001,11 @@ async function runImport() {
       document.getElementById('f_url').value          = data.recipe.source_url   || '';
       document.getElementById('recipeModal').classList.add('open');
       showToast('Imported — review and save ✓');
-    } else { status.textContent = '⚠ ' + data.error; }
+    } else {
+      status.textContent = '⚠ ' + data.error;
+    }
   } catch(e) { status.textContent = '⚠ Network error. Try again.'; }
+
   btn.textContent = 'Import Recipe'; btn.disabled = false;
 }
 
