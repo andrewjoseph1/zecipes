@@ -680,8 +680,12 @@ window.onload = () => {
 // ── Data ──────────────────────────────────────────────────
 async function loadRecipes() {
   try {
-    const res  = await fetch(SCRIPT_URL + '?action=list');
-    const data = await res.json();
+    const formData = new FormData();
+    formData.append('action', 'importText');
+    formData.append('url', url);
+    formData.append('text', text);
+    const res = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+    data = await res.json();
     allRecipes = data.recipes || [];
     buildChips(); renderList(allRecipes);
     requestAnimationFrame(() => {
