@@ -487,7 +487,7 @@ textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
 <div class="toast" id="toast"></div>
 
 <script>
-const SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycby8uQ8BJiA_-9ZLJtqHqogNMncv2kOwlbV3lzOshr5ErajZNqMtAOz6DwBn1aJG7X3c/exec';
+const SCRIPT_URL  = 'PASTE_YOUR_DEPLOYMENT_URL_HERE';
 const SESSION_KEY = 'zecipes_auth';
 
 let allRecipes     = [];
@@ -512,7 +512,11 @@ async function unlock() {
       sessionStorage.setItem(SESSION_KEY, '1');
       document.getElementById('lockScreen').style.display = 'none';
       document.getElementById('app').classList.add('visible');
-      document.getElementById('scrollArea').scrollTop = 0;
+      requestAnimationFrame(() => {
+        document.getElementById('scrollArea').scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      });
       loadRecipes();
     } else {
       document.getElementById('lockError').textContent = 'Incorrect password. Try again.';
@@ -544,7 +548,16 @@ async function loadRecipes() {
     const data = await res.json();
     allRecipes = data.recipes || [];
     buildChips(); renderList(allRecipes);
-    document.getElementById('scrollArea').scrollTop = 0;
+    requestAnimationFrame(() => {
+      document.getElementById('scrollArea').scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    });
+    setTimeout(() => {
+      document.getElementById('scrollArea').scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 300);
   } catch(e) {
     document.getElementById('recipeList').innerHTML =
       '<div class="empty"><div class="empty-icon">⚠️</div><h3>Couldn\'t load recipes</h3><p>Check your connection and try again.</p></div>';
@@ -728,7 +741,10 @@ function closeModal() { document.getElementById('recipeModal').classList.remove(
 async function saveRecipe() {
   const title = document.getElementById('f_title').value.trim();
   if (!title) { showToast('Please add a title.', true); return; }
-  const recipe = {
+
+  const action = editingId ? 'update' : 'add';
+  const params = new URLSearchParams({
+    action,
     title,
     category:     document.getElementById('f_category').value.trim(),
     servings:     document.getElementById('f_servings').value.trim(),
@@ -738,13 +754,13 @@ async function saveRecipe() {
     instructions: document.getElementById('f_instructions').value.trim(),
     notes:        document.getElementById('f_notes').value.trim(),
     source_url:   document.getElementById('f_url').value.trim(),
-  };
+  });
+  if (editingId) params.set('id', editingId);
+
   const btn = document.getElementById('saveBtn');
   btn.textContent = 'Saving…'; btn.disabled = true;
   try {
-    const action = editingId ? 'update' : 'add';
-    if (editingId) recipe.id = editingId;
-    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action, recipe }) });
+    const res  = await fetch(SCRIPT_URL + '?' + params.toString());
     const data = await res.json();
     if (data.success) {
       closeModal(); await loadRecipes();
@@ -764,7 +780,7 @@ function confirmDelete(id) {
 }
 async function doDelete(id) {
   try {
-    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id }) });
+    const res  = await fetch(SCRIPT_URL + '?action=delete&id=' + encodeURIComponent(id));
     const data = await res.json();
     if (data.success) { closeDetail(); await loadRecipes(); showToast('Recipe deleted.'); }
     else showToast('Could not delete.', true);
@@ -788,7 +804,7 @@ async function runImport() {
   btn.textContent = 'Importing…'; btn.disabled = true;
   status.textContent = 'Fetching and parsing — takes about 10 seconds…';
   try {
-    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'import', url }) });
+    const res  = await fetch(SCRIPT_URL + '?action=import&url=' + encodeURIComponent(url));
     const data = await res.json();
     if (data.success) {
       closeImportModal(); editingId = null;
