@@ -31,36 +31,34 @@ html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(-
 
 /* ── Lock screen ── */
 #lockScreen { position: fixed; inset: 0; z-index: 999; background: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; padding-top: calc(32px + var(--safe-top)); }
-.lock-logo { font-family: 'Playfair Display', serif; font-size: 2.4rem; color: var(--cream); margin-bottom: 6px; text-align: center; letter-spacing: -0.01em; }
+.lock-logo { font-family: 'Playfair Display', serif; font-size: 2.4rem; color: var(--cream); margin-bottom: 6px; text-align: center; }
 .lock-logo .ze { color: var(--accent); font-style: italic; }
-.lock-logo .cipes { color: var(--cream); font-style: normal; }
 .lock-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 36px; text-align: center; }
-.lock-input { width: 100%; max-width: 320px; padding: 14px 18px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.07) !important; color: var(--cream) !important; font-size: 1rem; font-family: 'DM Sans', sans-serif; outline: none; text-align: center; letter-spacing: 0.15em; margin-bottom: 14px; transition: border-color 0.15s; -webkit-text-fill-color: var(--cream); caret-color: var(--cream); }
-.lock-input:-webkit-autofill, .lock-input:-webkit-autofill:hover, .lock-input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 100px #2a2720 inset !important; -webkit-text-fill-color: var(--cream) !important; border-color: rgba(255,255,255,0.15); }
+.lock-input { width: 100%; max-width: 320px; padding: 14px 18px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.07) !important; color: var(--cream) !important; font-size: 1rem; font-family: 'DM Sans', sans-serif; outline: none; text-align: center; letter-spacing: 0.15em; margin-bottom: 14px; -webkit-text-fill-color: var(--cream); caret-color: var(--cream); }
+.lock-input:-webkit-autofill, .lock-input:-webkit-autofill:hover, .lock-input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 100px #2a2720 inset !important; -webkit-text-fill-color: var(--cream) !important; }
 .lock-input:focus { border-color: var(--accent); }
 .lock-input::placeholder { letter-spacing: 0; color: rgba(255,255,255,0.3); -webkit-text-fill-color: rgba(255,255,255,0.3); }
-.lock-btn { width: 100%; max-width: 320px; padding: 14px; border-radius: 10px; background: var(--accent); color: #fff; border: none; font-size: 1rem; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: background 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-.lock-btn:active { background: #a04e24; }
-.lock-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.lock-btn { width: 100%; max-width: 320px; padding: 14px; border-radius: 10px; background: var(--accent); color: #fff; border: none; font-size: 1rem; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.lock-btn:disabled { opacity: 0.7; }
 .lock-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
 .lock-btn.loading .lock-spinner { display: block; }
 .lock-error { margin-top: 12px; font-size: 0.82rem; color: #e07070; min-height: 18px; text-align: center; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── App shell ── */
+/* ── App ── */
 #app { display: none; height: 100vh; flex-direction: column; }
 #app.visible { display: flex; }
 
 /* ── Header ── */
-header { background: var(--ink); color: var(--cream); padding: 0 20px; padding-top: var(--safe-top); height: calc(56px + var(--safe-top)); display: flex; align-items: flex-end; padding-bottom: 12px; justify-content: space-between; flex-shrink: 0; position: relative; z-index: 10; }
+header { background: var(--ink); color: var(--cream); padding: 0 20px; padding-top: var(--safe-top); height: calc(56px + var(--safe-top)); display: flex; align-items: flex-end; padding-bottom: 12px; justify-content: space-between; flex-shrink: 0; z-index: 10; }
 .header-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 400; }
 .header-title .ze { color: var(--accent); font-style: italic; }
 .header-title .cipes { color: var(--cream); }
-.header-right { display: flex; gap: 8px; align-items: center; }
-.icon-btn { background: rgba(255,255,255,0.1); border: none; color: var(--cream); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; transition: background 0.15s; }
+.header-right { display: flex; gap: 8px; }
+.icon-btn { background: rgba(255,255,255,0.1); border: none; color: var(--cream); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; }
 .icon-btn:active { background: rgba(255,255,255,0.2); }
 
-/* ── Search bar ── */
+/* ── Search ── */
 .search-bar { background: var(--ink); padding: 0 16px 12px; display: none; }
 .search-bar.open { display: block; }
 .search-bar input { width: 100%; padding: 10px 14px; border-radius: 10px; border: none; background: rgba(255,255,255,0.12); color: var(--cream); font-size: 0.95rem; font-family: 'DM Sans', sans-serif; outline: none; }
@@ -70,19 +68,19 @@ header { background: var(--ink); color: var(--cream); padding: 0 20px; padding-t
 .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(88px + var(--safe-bot)); }
 
 /* ── Chips ── */
-.chip-row { display: flex; gap: 8px; padding: 14px 16px 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.chip-row { display: flex; gap: 8px; padding: 14px 16px 6px; overflow-x: auto; scrollbar-width: none; }
 .chip-row::-webkit-scrollbar { display: none; }
-.chip { flex-shrink: 0; padding: 6px 14px; border-radius: 99px; font-size: 0.82rem; font-weight: 500; border: 1.5px solid var(--border); background: var(--white); color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.chip { flex-shrink: 0; padding: 6px 14px; border-radius: 99px; font-size: 0.82rem; font-weight: 500; border: 1.5px solid var(--border); background: var(--white); color: var(--muted); cursor: pointer; white-space: nowrap; }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 /* ── Recipe list ── */
 .recipe-list { padding: 8px 16px; display: flex; flex-direction: column; gap: 10px; }
-.recipe-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; gap: 8px; }
+.recipe-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
 .recipe-card:active { transform: scale(0.985); background: var(--paper); }
 .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .card-category { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
-.card-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; line-height: 1.3; color: var(--ink); }
-.card-arrow { color: var(--muted); font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+.card-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; line-height: 1.3; }
+.card-arrow { color: var(--muted); font-size: 1.1rem; flex-shrink: 0; }
 .card-meta { display: flex; gap: 14px; font-size: 0.78rem; color: var(--muted); }
 
 /* ── Empty ── */
@@ -119,7 +117,7 @@ header { background: var(--ink); color: var(--cream); padding: 0 20px; padding-t
 
 /* ── FAB ── */
 .fab-wrap { position: fixed; right: 20px; bottom: calc(20px + var(--safe-bot)); z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-.fab { width: 58px; height: 58px; border-radius: 50%; background: var(--accent); color: #fff; border: none; font-size: 1.6rem; cursor: pointer; box-shadow: 0 4px 20px rgba(184,92,42,0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background 0.15s; position: relative; z-index: 2; }
+.fab { width: 58px; height: 58px; border-radius: 50%; background: var(--accent); color: #fff; border: none; font-size: 1.6rem; cursor: pointer; box-shadow: 0 4px 20px rgba(184,92,42,0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; z-index: 2; }
 .fab:active { background: #a04e24; }
 .fab.open { transform: rotate(45deg); }
 .fab-menu { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: all 0.18s; }
@@ -133,20 +131,31 @@ header { background: var(--ink); color: var(--cream); padding: 0 20px; padding-t
 .overlay.open { display: flex; animation: fadeIn 0.15s ease; }
 .modal { background: var(--white); border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; max-height: 90dvh; overflow-y: auto; padding: 12px 20px calc(20px + var(--safe-bot)); animation: sheetUp 0.22s ease; }
 .modal-pill { width: 40px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
-.modal-title { font-family: 'Playfair Display', serif; font-size: 1.35rem; margin-bottom: 20px; }
+.modal-title { font-family: 'Playfair Display', serif; font-size: 1.35rem; margin-bottom: 6px; }
+.modal-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 label { font-size: 0.78rem; font-weight: 500; color: var(--muted); }
-input[type=text], input[type=url], input[type=number], textarea { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; color: var(--ink); background: var(--cream); outline: none; transition: border-color 0.15s; -webkit-appearance: none; }
+input[type=text], input[type=url], input[type=number], textarea { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; color: var(--ink); background: var(--cream); outline: none; -webkit-appearance: none; }
 input:focus, textarea:focus { border-color: var(--accent); background: #fff; }
 textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .form-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-.btn { width: 100%; padding: 14px; border-radius: 10px; border: none; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn { width: 100%; padding: 14px; border-radius: 10px; border: none; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:active { background: #a04e24; }
 .btn-outline { background: transparent; color: var(--ink); border: 1.5px solid var(--border); }
 .btn-outline:active { background: var(--paper); }
-#importStatus { font-size: 0.85rem; color: var(--muted); min-height: 18px; margin-top: 4px; text-align: center; }
+.btn-ghost-accent { background: var(--accent-l); color: var(--accent); border: none; }
+.btn-ghost-accent:active { background: #e8cfc5; }
+.status-msg { font-size: 0.85rem; color: var(--muted); min-height: 18px; margin-top: 4px; text-align: center; }
+
+/* ── Camera import specific ── */
+.photo-previews { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.photo-thumb { position: relative; width: 80px; height: 80px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); flex-shrink: 0; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-thumb-remove { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; background: rgba(28,26,23,0.7); color: #fff; border: none; border-radius: 50%; font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.add-photo-btn { width: 80px; height: 80px; border-radius: 10px; border: 2px dashed var(--border); background: var(--paper); color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; gap: 4px; flex-shrink: 0; }
+.add-photo-btn span { font-size: 0.65rem; font-weight: 500; }
 
 /* ── Cook mode ── */
 .cook-view { display: none; position: fixed; inset: 0; background: var(--ink); z-index: 60; flex-direction: column; }
@@ -156,7 +165,6 @@ textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
 .cook-exit { background: rgba(255,255,255,0.12); border: none; color: var(--cream); padding: 8px 16px; border-radius: 99px; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; cursor: pointer; flex-shrink: 0; }
 .cook-exit:active { background: rgba(255,255,255,0.2); }
 .cook-ingredients-toggle { margin: 0 16px 12px; background: rgba(255,255,255,0.08); border: none; color: var(--cream); width: calc(100% - 32px); padding: 12px 16px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-.cook-ingredients-toggle:active { background: rgba(255,255,255,0.14); }
 .cook-ing-arrow { transition: transform 0.2s; }
 .cook-ingredients-toggle.open .cook-ing-arrow { transform: rotate(180deg); }
 .cook-ingredients-panel { margin: 0 16px 12px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; max-height: 0; transition: max-height 0.25s ease; flex-shrink: 0; }
@@ -215,9 +223,19 @@ textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
       <div class="empty"><div class="empty-icon">⏳</div><h3>Loading…</h3></div>
     </div>
   </div>
+
+  <!-- FAB with 4 options -->
   <div class="fab-wrap">
     <div class="fab-menu" id="fabMenu">
-      <div class="fab-item" onclick="openImportModal()">
+      <div class="fab-item" onclick="openCameraModal()">
+        <div class="fab-item-label">Scan photo</div>
+        <div class="fab-item-icon">📷</div>
+      </div>
+      <div class="fab-item" onclick="openPasteModal()">
+        <div class="fab-item-label">Paste text</div>
+        <div class="fab-item-icon">📄</div>
+      </div>
+      <div class="fab-item" onclick="openUrlModal()">
         <div class="fab-item-label">Import from URL</div>
         <div class="fab-item-icon">⬇️</div>
       </div>
@@ -269,28 +287,58 @@ textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
   </div>
 </div>
 
-<!-- Import Modal -->
-<div class="overlay" id="importModal">
+<!-- URL Import Modal -->
+<div class="overlay" id="urlModal">
   <div class="modal">
     <div class="modal-pill"></div>
-    <div class="modal-title">Import Recipe</div>
-    <div style="display:flex;gap:8px;margin-bottom:20px;">
-      <button id="tabUrl" onclick="switchImportTab('url')" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;">From URL</button>
-      <button id="tabText" onclick="switchImportTab('text')" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;">Paste text</button>
-    </div>
-    <div id="importUrlTab">
-      <p style="font-size:0.88rem;color:var(--muted);margin-bottom:16px;">Paste a recipe URL and we'll extract everything automatically.</p>
-      <div class="form-group"><label>Recipe URL</label><input type="url" id="importUrl" placeholder="https://…"></div>
-    </div>
-    <div id="importTextTab" style="display:none;">
-      <p style="font-size:0.88rem;color:var(--muted);margin-bottom:16px;">On the recipe page, select all text (<strong>⌘A</strong> or <strong>Ctrl+A</strong>), copy it, then paste below. Works on any site.</p>
-      <div class="form-group"><label>Source URL (optional)</label><input type="url" id="importTextUrl" placeholder="https://… (for reference)"></div>
-      <div class="form-group"><label>Paste page text</label><textarea id="importText" rows="7" placeholder="Paste the recipe page text here…"></textarea></div>
-    </div>
-    <div id="importStatus"></div>
+    <div class="modal-title">Import from URL</div>
+    <p class="modal-sub">Paste a recipe URL and we'll extract everything automatically.</p>
+    <div class="form-group"><label>Recipe URL</label><input type="url" id="importUrl" placeholder="https://…"></div>
+    <div class="status-msg" id="urlStatus"></div>
     <div class="form-actions">
-      <button class="btn btn-primary" id="importBtn" onclick="runImport()">Import Recipe</button>
-      <button class="btn btn-outline" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-primary" id="urlImportBtn" onclick="runUrlImport()">Import Recipe</button>
+      <button class="btn btn-outline" onclick="closeUrlModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Paste Text Modal -->
+<div class="overlay" id="pasteModal">
+  <div class="modal">
+    <div class="modal-pill"></div>
+    <div class="modal-title">Paste Recipe Text</div>
+    <p class="modal-sub">Copy the text from any recipe page and paste it below. On desktop: ⌘A then ⌘C. On iPhone: use Safari Reader Mode then copy.</p>
+    <div class="form-group"><label>Source URL (optional)</label><input type="url" id="pasteUrl" placeholder="https://… (for reference)"></div>
+    <div class="form-group"><label>Paste recipe text</label><textarea id="pasteText" rows="8" placeholder="Paste the recipe page text here…"></textarea></div>
+    <div class="status-msg" id="pasteStatus"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="pasteImportBtn" onclick="runPasteImport()">Extract Recipe</button>
+      <button class="btn btn-outline" onclick="closePasteModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Camera/Photo Modal -->
+<div class="overlay" id="cameraModal">
+  <div class="modal">
+    <div class="modal-pill"></div>
+    <div class="modal-title">Scan Recipe</div>
+    <p class="modal-sub">Take a photo of a recipe from a book, card, or magazine. Add multiple photos if the recipe spans more than one page.</p>
+
+    <!-- Photo previews + add button -->
+    <div class="photo-previews" id="photoPreviews">
+      <div class="add-photo-btn" onclick="triggerCamera()">
+        <span>📷</span>
+        <span>Add photo</span>
+      </div>
+    </div>
+    <!-- Hidden file input — capture="environment" opens rear camera on iOS -->
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoAdded(event)">
+
+    <div class="status-msg" id="cameraStatus"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="cameraExtractBtn" onclick="runCameraImport()" disabled style="opacity:0.5">Extract Recipe</button>
+      <button class="btn btn-outline" onclick="closeCameraModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -314,14 +362,14 @@ textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
 const SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycby8uQ8BJiA_-9ZLJtqHqogNMncv2kOwlbV3lzOshr5ErajZNqMtAOz6DwBn1aJG7X3c/exec';
 const SESSION_KEY = 'zecipes_auth';
 
-let allRecipes = [], activeCategory = null, currentId = null, editingId = null, fabOpen = false, searchOpen = false, importTab = 'url';
+let allRecipes = [], activeCategory = null, currentId = null, editingId = null, fabOpen = false, searchOpen = false;
+let capturedPhotos = []; // array of base64 strings
 
 // ── Lock ──────────────────────────────────────────────────
 async function unlock() {
   const pw = document.getElementById('lockInput').value.trim();
   if (!pw) return;
-  const btn = document.getElementById('lockBtn');
-  const btnText = document.getElementById('lockBtnText');
+  const btn = document.getElementById('lockBtn'), btnText = document.getElementById('lockBtnText');
   btn.classList.add('loading'); btn.disabled = true; btnText.textContent = 'Checking…';
   try {
     const res  = await fetch(SCRIPT_URL + '?action=checkPassword&pw=' + encodeURIComponent(pw));
@@ -342,7 +390,6 @@ async function unlock() {
   }
 }
 document.getElementById('lockInput').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
-
 window.onload = () => {
   if (sessionStorage.getItem(SESSION_KEY)) {
     document.getElementById('lockScreen').style.display = 'none';
@@ -414,8 +461,7 @@ function renderList(recipes) {
 
 // ── Detail ────────────────────────────────────────────────
 function openDetail(id) {
-  const r = allRecipes.find(x => x.id === id);
-  if (!r) return;
+  const r = allRecipes.find(x => x.id === id); if (!r) return;
   currentId = id; closeFab();
   const ingredients  = (r.ingredients  || '').split('\n').filter(Boolean);
   const instructions = (r.instructions || '').split('\n').filter(Boolean);
@@ -543,85 +589,156 @@ async function doDelete(id) {
   } catch(e) { showToast('Network error.', true); }
 }
 
-// ── Import ────────────────────────────────────────────────
-function switchImportTab(tab) {
-  importTab = tab;
-  document.getElementById('importUrlTab').style.display  = tab === 'url'  ? 'block' : 'none';
-  document.getElementById('importTextTab').style.display = tab === 'text' ? 'block' : 'none';
-  const urlBtn  = document.getElementById('tabUrl');
-  const textBtn = document.getElementById('tabText');
-  if (tab === 'url') {
-    urlBtn.style.background  = 'var(--accent)'; urlBtn.style.borderColor  = 'var(--accent)'; urlBtn.style.color  = '#fff';
-    textBtn.style.background = 'transparent';   textBtn.style.borderColor = 'var(--border)'; textBtn.style.color = 'var(--muted)';
-  } else {
-    textBtn.style.background = 'var(--accent)'; textBtn.style.borderColor = 'var(--accent)'; textBtn.style.color = '#fff';
-    urlBtn.style.background  = 'transparent';   urlBtn.style.borderColor  = 'var(--border)'; urlBtn.style.color  = 'var(--muted)';
-  }
-  document.getElementById('importStatus').textContent = '';
+// ── Shared: fill review form ──────────────────────────────
+function fillReviewForm(recipe) {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Review Imported Recipe';
+  document.getElementById('saveBtn').textContent = 'Save Recipe';
+  document.getElementById('f_title').value        = recipe.title        || '';
+  document.getElementById('f_category').value     = recipe.category     || '';
+  document.getElementById('f_servings').value     = recipe.servings     || '';
+  document.getElementById('f_prep').value         = recipe.prep_time    || '';
+  document.getElementById('f_cook').value         = recipe.cook_time    || '';
+  document.getElementById('f_ingredients').value  = recipe.ingredients  || '';
+  document.getElementById('f_instructions').value = recipe.instructions || '';
+  document.getElementById('f_notes').value        = recipe.notes        || '';
+  document.getElementById('f_url').value          = recipe.source_url   || '';
+  document.getElementById('recipeModal').classList.add('open');
 }
 
-function openImportModal() {
-  closeFab();
-  document.getElementById('importUrl').value     = '';
-  document.getElementById('importText').value    = '';
-  document.getElementById('importTextUrl').value = '';
-  document.getElementById('importStatus').textContent = '';
-  switchImportTab('url');
-  document.getElementById('importModal').classList.add('open');
-}
-function closeImportModal() { document.getElementById('importModal').classList.remove('open'); }
+// ── URL Import ────────────────────────────────────────────
+function openUrlModal() { closeFab(); document.getElementById('importUrl').value = ''; document.getElementById('urlStatus').textContent = ''; document.getElementById('urlModal').classList.add('open'); }
+function closeUrlModal() { document.getElementById('urlModal').classList.remove('open'); }
 
-async function runImport() {
-  const btn    = document.getElementById('importBtn');
-  const status = document.getElementById('importStatus');
+async function runUrlImport() {
+  const url = document.getElementById('importUrl').value.trim();
+  if (!url) { showToast('Please paste a URL.', true); return; }
+  const btn = document.getElementById('urlImportBtn'), status = document.getElementById('urlStatus');
   btn.textContent = 'Importing…'; btn.disabled = true;
+  status.textContent = 'Fetching and parsing — takes about 10 seconds…';
   try {
-    let data;
-    if (importTab === 'url') {
-      // URL tab: fetch via GET (Apps Script fetches the page server-side)
-      const url = document.getElementById('importUrl').value.trim();
-      if (!url) { showToast('Please paste a URL.', true); btn.textContent = 'Import Recipe'; btn.disabled = false; return; }
-      status.textContent = 'Fetching and parsing — takes about 10 seconds…';
-      const res = await fetch(SCRIPT_URL + '?action=import&url=' + encodeURIComponent(url));
-      data = await res.json();
-      // Auto-fallback if site blocked
-      if (!data.success && (data.error||'').toLowerCase().includes('blocked')) {
-        switchImportTab('text');
-        document.getElementById('importTextUrl').value = url;
-        status.textContent = '⚠ That site blocked the fetch. Paste the page text below instead.';
-        btn.textContent = 'Import Recipe'; btn.disabled = false; return;
-      }
-    } else {
-      // Paste text tab: POST so large text doesn't hit URL length limits
-      const text = document.getElementById('importText').value.trim();
-      const url  = document.getElementById('importTextUrl').value.trim();
-      if (!text) { showToast('Please paste some text.', true); btn.textContent = 'Import Recipe'; btn.disabled = false; return; }
-      status.textContent = 'Parsing recipe from text…';
-      const formData = new FormData();
-      formData.append('action', 'importText');
-      formData.append('url', url);
-      formData.append('text', text);
-      const res = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
-      data = await res.json();
-    }
+    const res  = await fetch(SCRIPT_URL + '?action=import&url=' + encodeURIComponent(url));
+    const data = await res.json();
     if (data.success) {
-      closeImportModal(); editingId = null;
-      document.getElementById('modalTitle').textContent = 'Review Imported Recipe';
-      document.getElementById('saveBtn').textContent = 'Save Recipe';
-      document.getElementById('f_title').value        = data.recipe.title        || '';
-      document.getElementById('f_category').value     = data.recipe.category     || '';
-      document.getElementById('f_servings').value     = data.recipe.servings     || '';
-      document.getElementById('f_prep').value         = data.recipe.prep_time    || '';
-      document.getElementById('f_cook').value         = data.recipe.cook_time    || '';
-      document.getElementById('f_ingredients').value  = data.recipe.ingredients  || '';
-      document.getElementById('f_instructions').value = data.recipe.instructions || '';
-      document.getElementById('f_notes').value        = data.recipe.notes        || '';
-      document.getElementById('f_url').value          = data.recipe.source_url   || '';
-      document.getElementById('recipeModal').classList.add('open');
-      showToast('Imported — review and save ✓');
+      closeUrlModal(); fillReviewForm(data.recipe); showToast('Imported — review and save ✓');
+    } else if ((data.error||'').toLowerCase().includes('blocked')) {
+      closeUrlModal(); openPasteModal();
+      document.getElementById('pasteUrl').value = url;
+      document.getElementById('pasteStatus').textContent = '⚠ That site blocked the fetch. Paste the page text instead.';
     } else { status.textContent = '⚠ ' + data.error; }
   } catch(e) { status.textContent = '⚠ Network error. Try again.'; }
   btn.textContent = 'Import Recipe'; btn.disabled = false;
+}
+
+// ── Paste Text Import ─────────────────────────────────────
+function openPasteModal() { closeFab(); document.getElementById('pasteUrl').value = ''; document.getElementById('pasteText').value = ''; document.getElementById('pasteStatus').textContent = ''; document.getElementById('pasteModal').classList.add('open'); }
+function closePasteModal() { document.getElementById('pasteModal').classList.remove('open'); }
+
+async function runPasteImport() {
+  const text = document.getElementById('pasteText').value.trim();
+  const url  = document.getElementById('pasteUrl').value.trim();
+  if (!text) { showToast('Please paste some text.', true); return; }
+  const btn = document.getElementById('pasteImportBtn'), status = document.getElementById('pasteStatus');
+  btn.textContent = 'Extracting…'; btn.disabled = true;
+  status.textContent = 'Parsing recipe from text…';
+  try {
+    const formData = new FormData();
+    formData.append('action', 'importText');
+    formData.append('url', url);
+    formData.append('text', text);
+    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) { closePasteModal(); fillReviewForm(data.recipe); showToast('Extracted — review and save ✓'); }
+    else { status.textContent = '⚠ ' + data.error; }
+  } catch(e) { status.textContent = '⚠ Network error. Try again.'; }
+  btn.textContent = 'Extract Recipe'; btn.disabled = false;
+}
+
+// ── Camera Import ─────────────────────────────────────────
+function openCameraModal() {
+  closeFab();
+  capturedPhotos = [];
+  renderPhotoPreviews();
+  document.getElementById('cameraStatus').textContent = '';
+  document.getElementById('cameraExtractBtn').disabled = true;
+  document.getElementById('cameraExtractBtn').style.opacity = '0.5';
+  document.getElementById('cameraModal').classList.add('open');
+}
+function closeCameraModal() { document.getElementById('cameraModal').classList.remove('open'); capturedPhotos = []; }
+
+function triggerCamera() {
+  // Reset input so same file can be re-selected if needed
+  const input = document.getElementById('cameraInput');
+  input.value = '';
+  input.click();
+}
+
+function handlePhotoAdded(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result; // full data URL
+    capturedPhotos.push(base64);
+    renderPhotoPreviews();
+    document.getElementById('cameraExtractBtn').disabled = false;
+    document.getElementById('cameraExtractBtn').style.opacity = '1';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePhoto(index) {
+  capturedPhotos.splice(index, 1);
+  renderPhotoPreviews();
+  if (capturedPhotos.length === 0) {
+    document.getElementById('cameraExtractBtn').disabled = true;
+    document.getElementById('cameraExtractBtn').style.opacity = '0.5';
+  }
+}
+
+function renderPhotoPreviews() {
+  const container = document.getElementById('photoPreviews');
+  container.innerHTML = '';
+  capturedPhotos.forEach((src, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'photo-thumb';
+    thumb.innerHTML = `
+      <img src="${src}" alt="Recipe photo ${i+1}">
+      <button class="photo-thumb-remove" onclick="removePhoto(${i})">✕</button>`;
+    container.appendChild(thumb);
+  });
+  // Add photo button (max 4 photos)
+  if (capturedPhotos.length < 4) {
+    const addBtn = document.createElement('div');
+    addBtn.className = 'add-photo-btn';
+    addBtn.onclick = triggerCamera;
+    addBtn.innerHTML = `<span>📷</span><span>${capturedPhotos.length === 0 ? 'Add photo' : 'Add more'}</span>`;
+    container.appendChild(addBtn);
+  }
+}
+
+async function runCameraImport() {
+  if (capturedPhotos.length === 0) return;
+  const btn = document.getElementById('cameraExtractBtn'), status = document.getElementById('cameraStatus');
+  btn.textContent = 'Extracting…'; btn.disabled = true; btn.style.opacity = '0.7';
+  status.textContent = `Analysing ${capturedPhotos.length} photo${capturedPhotos.length>1?'s':''}…`;
+  try {
+    const formData = new FormData();
+    formData.append('action', 'importFromImages');
+    // Send each image as base64 (strip data URL prefix)
+    capturedPhotos.forEach((dataUrl, i) => {
+      const base64 = dataUrl.split(',')[1];
+      const mime   = dataUrl.split(';')[0].split(':')[1];
+      formData.append(`image_${i}`, base64);
+      formData.append(`mime_${i}`, mime);
+    });
+    formData.append('imageCount', capturedPhotos.length);
+    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) { closeCameraModal(); fillReviewForm(data.recipe); showToast('Recipe scanned — review and save ✓'); }
+    else { status.textContent = '⚠ ' + data.error; }
+  } catch(e) { status.textContent = '⚠ Network error. Try again.'; }
+  btn.textContent = 'Extract Recipe'; btn.disabled = false; btn.style.opacity = '1';
 }
 
 // ── Cook Mode ────────────────────────────────────────────
@@ -650,19 +767,20 @@ function toggleCookIngredients() {
 }
 document.addEventListener('visibilitychange', async () => {
   if (wakeLock !== null && document.visibilityState === 'visible') {
-    try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
-  }
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {} }
 });
 
 // ── Toast ─────────────────────────────────────────────────
 function showToast(msg, isError = false) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast' + (isError ? ' error' : ''); t.classList.add('show');
+  t.textContent = msg; t.className = 'toast' + (isError?' error':''); t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 document.querySelectorAll('.overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) { closeModal(); closeImportModal(); } });
+  o.addEventListener('click', e => {
+    if (e.target === o) { closeModal(); closeUrlModal(); closePasteModal(); closeCameraModal(); }
+  });
 });
 
 // PWA manifest
