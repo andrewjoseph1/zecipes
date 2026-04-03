@@ -27,7 +27,8 @@
   --safe-bot: env(safe-area-inset-bottom);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); overscroll-behavior: none; }
+html { height: 100%; }
+body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); position: fixed; width: 100%; overflow: hidden; }
 
 /* ── Lock screen ── */
 #lockScreen { position: fixed; inset: 0; z-index: 999; background: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; padding-top: calc(32px + var(--safe-top)); }
@@ -65,7 +66,7 @@ header { background: var(--ink); color: var(--cream); padding: 0 20px; padding-t
 .search-bar input::placeholder { color: rgba(255,255,255,0.4); }
 
 /* ── Scroll area ── */
-.scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(88px + var(--safe-bot)); }
+.scroll-area { flex: 1; overflow-y: scroll; -webkit-overflow-scrolling: touch; padding-bottom: calc(88px + var(--safe-bot)); overscroll-behavior-y: contain; }
 
 /* ── Chips ── */
 .chip-row { display: flex; gap: 8px; padding: 14px 16px 6px; overflow-x: auto; scrollbar-width: none; }
@@ -96,7 +97,7 @@ header { background: var(--ink); color: var(--cream); padding: 0 20px; padding-t
 .detail-back { background: rgba(255,255,255,0.1); border: none; color: var(--cream); padding: 7px 14px; border-radius: 99px; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .detail-back:active { background: rgba(255,255,255,0.2); }
 .detail-header-actions { display: flex; gap: 8px; }
-.detail-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 24px 20px calc(40px + var(--safe-bot)); }
+.detail-scroll { flex: 1; overflow-y: scroll; -webkit-overflow-scrolling: touch; padding: 24px 20px calc(40px + var(--safe-bot)); overscroll-behavior-y: contain; }
 .detail-category { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
 .detail-title { font-family: 'Playfair Display', serif; font-size: 1.9rem; line-height: 1.15; margin-bottom: 18px; }
 .detail-meta-row { display: flex; margin-bottom: 24px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--white); }
@@ -129,7 +130,7 @@ header { background: var(--ink); color: var(--cream); padding: 0 20px; padding-t
 /* ── Modals ── */
 .overlay { display: none; position: fixed; inset: 0; background: rgba(28,26,23,0.55); z-index: 200; align-items: flex-end; justify-content: center; }
 .overlay.open { display: flex; animation: fadeIn 0.15s ease; }
-.modal { background: var(--white); border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; max-height: 90dvh; overflow-y: auto; padding: 12px 20px calc(20px + var(--safe-bot)); animation: sheetUp 0.22s ease; }
+.modal { background: var(--white); border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; max-height: 90dvh; overflow-y: scroll; -webkit-overflow-scrolling: touch; padding: 12px 20px calc(20px + var(--safe-bot)); animation: sheetUp 0.22s ease; }
 .modal-pill { width: 40px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
 .modal-title { font-family: 'Playfair Display', serif; font-size: 1.35rem; margin-bottom: 6px; }
 .modal-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
@@ -172,7 +173,7 @@ textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
 .cook-ing-item { padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.88rem; color: rgba(255,255,255,0.8); display: flex; align-items: baseline; gap: 8px; }
 .cook-ing-item::before { content: '·'; color: var(--accent); font-size: 1.2rem; flex-shrink: 0; line-height: 0.6; }
 .cook-ing-item:last-child { border-bottom: none; }
-.cook-steps { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 16px calc(40px + var(--safe-bot)); }
+.cook-steps { flex: 1; overflow-y: scroll; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; padding: 0 16px calc(40px + var(--safe-bot)); }
 .cook-step { padding: 20px 0 20px 52px; position: relative; border-bottom: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: opacity 0.2s; }
 .cook-step.done { opacity: 0.35; }
 .cook-step.done .cook-step-text { text-decoration: line-through; }
@@ -512,7 +513,13 @@ function closeFab() {
   document.getElementById('fab').classList.remove('open');
   document.getElementById('fabMenu').classList.remove('open');
 }
-document.getElementById('scrollArea').addEventListener('click', closeFab);
+// Close FAB on scroll — use touchstart but only if not actually scrolling
+let scrollStartY = 0;
+document.getElementById('scrollArea').addEventListener('touchstart', e => { scrollStartY = e.touches[0].clientY; }, { passive: true });
+document.getElementById('scrollArea').addEventListener('touchend', e => {
+  const dy = Math.abs(e.changedTouches[0].clientY - scrollStartY);
+  if (dy < 8 && fabOpen) closeFab(); // only close if it was a tap not a scroll
+}, { passive: true });
 
 // ── Search ────────────────────────────────────────────────
 function toggleSearch() {
