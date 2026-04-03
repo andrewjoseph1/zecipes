@@ -117,13 +117,13 @@ header { background: var(--ink); color: var(--cream); padding: 0 20px; padding-t
 .notes-box { background: var(--paper); border-left: 3px solid var(--accent); padding: 14px 16px; border-radius: 0 10px 10px 0; font-size: 0.88rem; line-height: 1.65; color: var(--muted); margin-bottom: 32px; }
 
 /* ── FAB ── */
-.fab-wrap { position: fixed; right: 20px; bottom: calc(20px + var(--safe-bot)); z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-.fab { width: 58px; height: 58px; border-radius: 50%; background: var(--accent); color: #fff; border: none; font-size: 1.6rem; cursor: pointer; box-shadow: 0 4px 20px rgba(184,92,42,0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; z-index: 2; }
+.fab-wrap { position: fixed; right: 20px; bottom: calc(20px + var(--safe-bot)); z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none; }
+.fab { width: 58px; height: 58px; border-radius: 50%; background: var(--accent); color: #fff; border: none; font-size: 1.6rem; cursor: pointer; box-shadow: 0 4px 20px rgba(184,92,42,0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; z-index: 2; pointer-events: all; }
 .fab:active { background: #a04e24; }
 .fab.open { transform: rotate(45deg); }
 .fab-menu { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: all 0.18s; }
 .fab-menu.open { opacity: 1; pointer-events: all; transform: translateY(0); }
-.fab-item { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.fab-item { display: flex; align-items: center; gap: 10px; cursor: pointer; pointer-events: all; }
 .fab-item-label { background: var(--ink); color: var(--cream); padding: 6px 14px; border-radius: 99px; font-size: 0.85rem; white-space: nowrap; box-shadow: var(--shadow); }
 .fab-item-icon { width: 42px; height: 42px; border-radius: 50%; background: var(--ink); color: var(--cream); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; box-shadow: var(--shadow); flex-shrink: 0; }
 
