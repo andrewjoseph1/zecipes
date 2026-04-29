@@ -313,18 +313,6 @@ header {
   font-size: 0.88rem; line-height: 1.65; color: var(--muted); margin-bottom: 32px;
 }
 
-/* ── Quantity badges (woven into instructions when scaled) ── */
-.qty {
-  display: inline-block;
-  background: var(--accent-l);
-  color: var(--accent);
-  font-weight: 600;
-  padding: 1px 7px;
-  border-radius: 6px;
-  font-size: 0.86em;
-  white-space: nowrap;
-}
-
 /* ── Scaling controls ── */
 .scale-row {
   display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
@@ -944,10 +932,11 @@ function renderDetail(r, scale) {
     ? `<ul class="ingredients-list">${scaledIngredients.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`
     : '<p style="color:var(--muted);margin-bottom:32px">No ingredients listed.</p>';
 
-  const parsedIngredients = ingredientsRaw.map(parseIngredient);
+  // Build the keyword set for scaling step text in place.
+  const keywords = extractIngredientKeywords(r.ingredients || '');
 
   const stepsHtml = instructions.length
-    ? `<ol class="steps-list">${instructions.map(s => `<li>${weaveStep(s, parsedIngredients, scale)}</li>`).join('')}</ol>`
+    ? `<ol class="steps-list">${instructions.map(s => `<li>${esc(scaleStep(s, scale, keywords))}</li>`).join('')}</ol>`
     : '<p style="color:var(--muted);margin-bottom:32px">No instructions listed.</p>';
 
   let sourceHost = '';
@@ -1045,85 +1034,101 @@ function scaleIngredient(line, multiplier) {
   return line;
 }
 
-// ── Weaving scaled quantities into instructions ───────────
+// ── Scaling quantities inside instruction steps ───────────
+//
+// Strategy: scan each step for numeric tokens. Scale a number only if it's
+// followed by a known unit word (or has a unit glued to it like "200g") OR
+// if it's followed by a word that appears in this recipe's ingredient list.
+// Numbers followed by time/temperature/dimension words (minutes, degrees,
+// inches, etc.) are left alone, as are numbers in ranges like "4-5 minutes".
 
-const UNIT_WORDS = ['g','kg','mg','ml','l','oz','lb','lbs','tsp','tbsp','cup','cups','clove','cloves','can','cans','tin','tins','pinch','pinches','sprig','sprigs','bunch','bunches','slice','slices','stick','sticks','sheet','sheets','head','heads','piece','pieces'];
-const UNIT_REGEX = new RegExp('^(' + UNIT_WORDS.join('|') + ')$', 'i');
+const UNIT_WORDS = ['ounce','ounces','oz','pound','pounds','lb','lbs','gram','grams','g','kilogram','kilograms','kg','milligram','milligrams','mg','milliliter','milliliters','ml','liter','liters','l','teaspoon','teaspoons','tsp','tablespoon','tablespoons','tbsp','cup','cups','pinch','pinches','clove','cloves','can','cans','tin','tins','sprig','sprigs','bunch','bunches','slice','slices','stick','sticks','sheet','sheets','head','heads','piece','pieces','dash','dashes'];
+const UNIT_SET = new Set(UNIT_WORDS.map(u => u.toLowerCase()));
 
-function parseIngredient(line) {
-  const original = line;
-  let rest = line.trim();
-  let qty = null;
-  let qtyText = '';
-  let unit = '';
-  let m;
+const NON_SCALE_FOLLOWERS = new Set([
+  'minute','minutes','min','mins','second','seconds','sec','secs','hour','hours','hr','hrs','day','days','week','weeks',
+  'degree','degrees','f','c',
+  'inch','inches','cm','mm','foot','feet','ft',
+  'percent','time','times'
+]);
 
-  if ((m = rest.match(/^(\d+(?:\.\d+)?)([a-zA-Z]+)(\s+|$)/)) && UNIT_REGEX.test(m[2])) {
-    qty = parseFloat(m[1]);
-    qtyText = m[1] + m[2];
-    unit = m[2];
-    rest = rest.slice(m[0].length);
-  }
-  else if ((m = rest.match(/^(\d+\s+\d+\/\d+)(\s+|$)/))) {
-    qty = parseFraction(m[1]); qtyText = m[1]; rest = rest.slice(m[0].length);
-  }
-  else if ((m = rest.match(/^(\d+\/\d+)(\s+|$)/))) {
-    qty = parseFraction(m[1]); qtyText = m[1]; rest = rest.slice(m[0].length);
-  }
-  else if ((m = rest.match(/^(\d+(?:\.\d+)?)(\s+|$)/))) {
-    qty = parseFloat(m[1]); qtyText = m[1]; rest = rest.slice(m[0].length);
-  }
-  else if ((m = rest.match(/^([¼½¾⅓⅔⅛⅜⅝⅞⅕⅖⅗⅘])(\s+|$)/))) {
-    qty = UNICODE_FRAC[m[1]]; qtyText = m[1]; rest = rest.slice(m[0].length);
-  }
+const STEP_STOPWORDS = new Set(['plain','fresh','dried','large','small','medium','whole','ground','chopped','sliced','diced','minced','crushed','grated','peeled','seeded','rinsed','drained','cold','hot','warm','cool','ripe','raw','cooked','extra','virgin','sea','kosher','of','the','a','an','and','or','to','for','with','in','on','at','by','about','each']);
 
-  if (qty !== null && !unit) {
-    const next = rest.match(/^(\S+)(\s+|$)/);
-    if (next && UNIT_REGEX.test(next[1])) {
-      unit = next[1];
-      rest = rest.slice(next[0].length);
+// Build a flat set of keywords from the recipe's ingredients list. Used to
+// decide whether "1 green onion" in a step is a recipe quantity (yes — onion
+// is in the keyword set) versus an arbitrary count.
+function extractIngredientKeywords(ingredientsText) {
+  const keywords = new Set();
+  for (const line of (ingredientsText || '').split('\n')) {
+    if (!line.trim()) continue;
+    let rest = line.trim();
+    // Drop leading number + optional unit
+    rest = rest.replace(/^[\d¼½¾⅓⅔⅛⅜⅝⅞⅕⅖⅗⅘\.\/\s]+/, '');
+    const firstWord = rest.split(/\s+/)[0]?.toLowerCase().replace(/[:,]$/, '');
+    if (firstWord && UNIT_SET.has(firstWord)) {
+      rest = rest.split(/\s+/).slice(1).join(' ');
+    }
+    // Drop parentheticals and post-comma prep notes
+    rest = rest.split(',')[0].replace(/\(.*?\)/g, '').trim().toLowerCase();
+    for (const w of rest.split(/[\s\-]+/)) {
+      const clean = w.replace(/[^a-z]/g, '');
+      if (clean.length >= 3 && !STEP_STOPWORDS.has(clean)) {
+        keywords.add(clean);
+        if (clean.endsWith('s') && clean.length > 4) keywords.add(clean.replace(/s$/, ''));
+      }
     }
   }
-
-  let name = rest.split(',')[0].trim();
-  name = name.replace(/\(.*?\)/g, '').trim();
-  name = name.replace(/^of\s+/i, '');
-  const nameLower = name.toLowerCase();
-
-  const stopwords = new Set(['plain','fresh','dried','large','small','medium','whole','ground','chopped','sliced','diced','minced','crushed','grated','peeled','seeded','rinsed','drained','cold','hot','warm','cool','ripe','raw','cooked','extra','virgin','sea','kosher','of','the','a','an','and','or','to','for','with','in','on','at','by','about']);
-  const words = nameLower.split(/\s+/).filter(w => w && !stopwords.has(w));
-  let keyword = words[words.length - 1] || nameLower;
-  if (keyword.endsWith('s') && keyword.length > 3) keyword = keyword.replace(/s$/, '');
-
-  return { original, qty, qtyText, unit, name, nameLower, keyword };
+  return keywords;
 }
 
-function weaveStep(step, parsedIngredients, scale) {
-  let html = esc(step);
-  if (scale === 1) return html;
+function scaleStep(step, scale, keywords) {
+  if (scale === 1) return step;
 
-  for (const ing of parsedIngredients) {
-    if (!ing.qty || !ing.keyword || ing.keyword.length < 3) continue;
-    const re = new RegExp('\\b(' + escapeRegex(ing.keyword) + 's?)\\b', 'i');
-    const match = html.match(re);
-    if (!match) continue;
+  const NUM_RE = /(?<![\w.])(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞⅕⅖⅗⅘])([a-zA-Z]*)/g;
 
-    const scaledQty = formatScaled(ing.qty * scale);
-    const badge = `<span class="qty">${esc(scaledQty)}${formatUnit(ing.unit)}</span>`;
-    html = html.replace(re, match[1] + ' ' + badge);
-  }
+  return step.replace(NUM_RE, (match, num, gluedRaw, offset) => {
+    let glued = '';
+    let gluedIsUnit = false;
+    if (gluedRaw) {
+      if (UNIT_SET.has(gluedRaw.toLowerCase())) {
+        glued = gluedRaw;
+        gluedIsUnit = true;
+      } else {
+        // Letters glued to number that aren't a unit (e.g. "5th", "90s") — skip.
+        return match;
+      }
+    }
 
-  return html;
-}
+    const after = step.slice(offset + match.length);
+    const rest = after.trimStart();
 
-function escapeRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+    const firstWordRaw = rest.split(/[\s,.;:]+/)[0] || '';
+    const firstWord = firstWordRaw.toLowerCase().replace(/[^a-z]/g, '');
+    if (NON_SCALE_FOLLOWERS.has(firstWord)) return match;
 
-function formatUnit(unit) {
-  if (!unit) return '';
-  const compact = /^(g|kg|mg|ml|l|oz|lb|lbs)$/i.test(unit);
-  return compact ? esc(unit) : ' ' + esc(unit);
+    // Don't scale numbers in ranges ("4-5 minutes", "10-12 minutes")
+    const charAfter = after.charAt(0);
+    if (charAfter === '-' || charAfter === '–' || charAfter === '—') return match;
+    const charBefore = step.charAt(offset - 1);
+    if (charBefore === '-' || charBefore === '–' || charBefore === '—') return match;
+
+    const v = parseFraction(num);
+    if (isNaN(v)) return match;
+    const scaled = formatScaled(v * scale);
+
+    if (gluedIsUnit) return scaled + glued;
+    if (UNIT_SET.has(firstWord)) return scaled;
+
+    // Followed by an ingredient keyword within the next 4 words
+    const nextWords = rest.split(/[\s,.;:]+/).slice(0, 4)
+      .map(w => w.toLowerCase().replace(/[^a-z]/g, ''))
+      .filter(Boolean);
+    for (const w of nextWords) {
+      if (keywords.has(w)) return scaled;
+    }
+
+    return match;
+  });
 }
 
 function closeDetail() { document.getElementById('detailView').classList.remove('open'); currentId = null; }
