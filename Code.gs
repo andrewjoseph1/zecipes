@@ -435,37 +435,50 @@ function pageToRecipeText(html) {
   return { text: text };
 }
 
-function routeDirect(url) {
-  let page;
-  try { page = fetchPage(url); }
-  catch (e) { return { fail: 'FETCH_FAILED', note: e.message }; }
-  if (page.status >= 400) {
-    const blocked = page.status === 403 || page.status === 401 || page.status === 429 || page.status === 503;
-    return { fail: blocked ? 'BLOCKED' : 'HTTP_' + page.status, status: page.status };
+// Interpret one fetched response according to its route.
+function routeResult(name, res) {
+  if (res.error) return { fail: 'FETCH_FAILED', note: res.error };
+  if (res.status >= 400) {
+    const blocked = res.status === 403 || res.status === 401 || res.status === 429 || res.status === 503;
+    return { fail: (name === 'direct' && blocked) ? 'BLOCKED' : 'HTTP_' + res.status };
   }
-  const r = pageToRecipeText(page.body);
-  return r.text ? { text: r.text } : { fail: r.fail, status: page.status };
-}
-
-function routeJina(url) {
-  let page;
-  try {
-    page = fetchPage('https://r.jina.ai/' + url, { 'Accept': 'text/plain', 'X-Return-Format': 'text', 'X-No-Cache': 'false' });
-  } catch (e) { return { fail: 'FETCH_FAILED', note: e.message }; }
-  if (page.status >= 400) return { fail: 'HTTP_' + page.status, status: page.status };
-  const text = normalizeText(page.body);
-  if (looksBlocked(text)) return { fail: 'BLOCKED' };
-  if (text.length < 400) return { fail: 'EMPTY' };
-  return { text: text };
-}
-
-function routeWayback(url) {
-  let page;
-  try { page = fetchPage('https://web.archive.org/web/2id_/' + url); }
-  catch (e) { return { fail: 'FETCH_FAILED', note: e.message }; }
-  if (page.status >= 400) return { fail: 'HTTP_' + page.status, status: page.status };
-  const r = pageToRecipeText(page.body);
+  if (name === 'jina') {
+    const text = normalizeText(res.body);
+    if (looksBlocked(text)) return { fail: 'BLOCKED' };
+    if (text.length < 400) return { fail: 'EMPTY' };
+    return { text: text };
+  }
+  const r = pageToRecipeText(res.body);
   return r.text ? { text: r.text } : { fail: r.fail };
+}
+
+// The three plain fetches run concurrently (fetchAll), so the slowest one
+// bounds the wait instead of their sum. Results are then preferred in order.
+function fetchRoutesInParallel(url) {
+  const reqs = [
+    { name: 'direct',  url: url, headers: BROWSER_HEADERS },
+    { name: 'jina',    url: 'https://r.jina.ai/' + url, headers: { 'Accept': 'text/plain', 'X-Return-Format': 'text' } },
+    { name: 'wayback', url: 'https://web.archive.org/web/2id_/' + url, headers: BROWSER_HEADERS }
+  ];
+  const t0 = Date.now();
+  let responses;
+  try {
+    responses = UrlFetchApp.fetchAll(reqs.map(r => ({ url: r.url, muteHttpExceptions: true, followRedirects: true, headers: r.headers })));
+  } catch (e) {
+    // fetchAll rejects the whole batch if any URL is malformed; fall back to one-by-one.
+    responses = reqs.map(r => { try { return UrlFetchApp.fetch(r.url, { muteHttpExceptions: true, followRedirects: true, headers: r.headers }); } catch (err) { return { error: err.message }; } });
+  }
+  const ms = Date.now() - t0;
+  return reqs.map((r, i) => {
+    const res = responses[i];
+    let raw;
+    if (!res) raw = { error: 'no response' };
+    else if (res.error) raw = { error: res.error };
+    else { try { raw = { status: res.getResponseCode(), body: res.getContentText() }; } catch (e) { raw = { error: e.message }; } }
+    const out = routeResult(r.name, raw);
+    out.name = r.name; out.status = raw.status; out.ms = ms;
+    return out;
+  });
 }
 
 function importFromUrl(url) {
@@ -473,44 +486,31 @@ function importFromUrl(url) {
   if (!/^https?:\/\//i.test(url)) {
     return { success: false, code: 'BAD_URL', error: 'That doesn\'t look like a web address. It should start with http:// or https://.' };
   }
+  const started = Date.now();
+  logEvent('INFO', 'importUrl', 'Start: ' + url);
 
   const tried = [];
   let sawBlock = false;
 
-  const routes = [
-    ['direct',  routeDirect],
-    ['jina',    routeJina]
-  ];
-  for (let i = 0; i < routes.length; i++) {
-    const r = routes[i][1](url);
-    if (r.text) {
-      const out = callClaudeWithText(r.text.slice(0, TEXT_CHAR_LIMIT), url, 'importUrl');
-      if (out.success) { out.via = routes[i][0]; logEvent('INFO', 'importUrl', 'via ' + routes[i][0] + ': ' + url); return out; }
-      tried.push(routes[i][0] + ':' + (out.code || 'claude'));
-      if (out.code === 'API_AUTH' || out.code === 'CONFIG' || out.code === 'API_BUSY') return out;
-      continue;
-    }
-    tried.push(routes[i][0] + ':' + r.fail);
-    if (r.fail === 'BLOCKED') sawBlock = true;
+  // 1–3 in parallel: direct, Jina Reader, Wayback Machine
+  const results = fetchRoutesInParallel(url);
+  logEvent('INFO', 'importUrl', 'Fetched in ' + results[0].ms + 'ms — ' + results.map(r => r.name + ':' + (r.text ? 'ok(' + r.text.length + ')' : r.fail + (r.status ? '/' + r.status : ''))).join(', '));
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (!r.text) { tried.push(r.name + ':' + r.fail); if (r.fail === 'BLOCKED') sawBlock = true; continue; }
+    const out = callClaudeWithText(r.text.slice(0, TEXT_CHAR_LIMIT), url, 'importUrl');
+    if (out.success) { out.via = r.name; logEvent('INFO', 'importUrl', 'OK via ' + r.name + ' in ' + (Date.now() - started) + 'ms: ' + out.recipe.title); return out; }
+    tried.push(r.name + ':' + (out.code || 'claude'));
+    if (out.code === 'API_AUTH' || out.code === 'CONFIG' || out.code === 'API_BUSY') return out;
   }
 
-  // 3. Let Claude fetch the page itself
+  // 4. Let Claude fetch the page itself
   const viaClaude = importViaClaudeFetch(url);
-  if (viaClaude.success) { viaClaude.via = 'web_fetch'; logEvent('INFO', 'importUrl', 'via web_fetch: ' + url); return viaClaude; }
+  if (viaClaude.success) { viaClaude.via = 'web_fetch'; logEvent('INFO', 'importUrl', 'OK via web_fetch in ' + (Date.now() - started) + 'ms: ' + viaClaude.recipe.title); return viaClaude; }
   tried.push('web_fetch:' + (viaClaude.code || '?'));
   if (viaClaude.code === 'API_AUTH' || viaClaude.code === 'CONFIG') return viaClaude;
 
-  // 4. Wayback Machine
-  const wb = routeWayback(url);
-  if (wb.text) {
-    const out = callClaudeWithText(wb.text.slice(0, TEXT_CHAR_LIMIT), url, 'importUrl');
-    if (out.success) { out.via = 'wayback'; logEvent('INFO', 'importUrl', 'via wayback: ' + url); return out; }
-    tried.push('wayback:' + (out.code || 'claude'));
-  } else {
-    tried.push('wayback:' + wb.fail);
-  }
-
-  logEvent('WARN', 'importUrl', 'All routes failed for ' + url + ' — ' + tried.join(', '));
+  logEvent('WARN', 'importUrl', 'All routes failed in ' + (Date.now() - started) + 'ms for ' + url + ' — ' + tried.join(', '));
   return {
     success: false,
     code: sawBlock ? 'BLOCKED' : 'UNREACHABLE',
