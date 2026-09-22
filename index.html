@@ -617,8 +617,76 @@ textarea.mono { font-size: 0.92rem; }
 .toast.error { background: var(--danger); }
 .toast.error .ic { color: #fff; }
 
+/* ── Detail call-to-action ── */
+.detail-cta {
+  flex-shrink: 0; padding: 10px 16px calc(12px + var(--safe-bot));
+  background: linear-gradient(to top, var(--cream) 70%, rgba(250,247,242,0));
+}
+.detail-cta .btn { background: var(--ink); color: var(--cream); box-shadow: var(--shadow); }
+.detail-cta .btn:active { background: #000; }
+
+/* ── Cook mode ── */
+.cook-view {
+  display: none; position: fixed; inset: 0; z-index: 60;
+  background: var(--ink); color: var(--cream); flex-direction: column;
+}
+.cook-view.open { display: flex; animation: slideUp 0.26s var(--ease); }
+.cook-header {
+  padding: 10px 12px 10px 20px; padding-top: calc(10px + var(--safe-top));
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.cook-head-text { flex: 1; min-width: 0; }
+.cook-eyebrow { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 3px; }
+.cook-title { font-family: var(--serif); font-size: 1.25rem; font-weight: 600; line-height: 1.2; color: var(--cream); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cook-exit {
+  background: rgba(255,255,255,0.1); border: none; color: var(--cream);
+  min-height: 44px; padding: 0 18px; border-radius: 99px; font-size: 0.9rem; font-weight: 500;
+  cursor: pointer; flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+}
+.cook-exit:active { background: rgba(255,255,255,0.2); }
+.cook-progress { height: 3px; background: rgba(255,255,255,0.1); margin: 0 20px 6px; border-radius: 99px; overflow: hidden; flex-shrink: 0; }
+.cook-progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.3s var(--ease); }
+.cook-ingredients-toggle {
+  margin: 8px 16px 0; background: rgba(255,255,255,0.07); border: none; color: var(--cream);
+  width: calc(100% - 32px); min-height: 48px; padding: 0 16px; border-radius: 12px;
+  font-size: 0.9rem; font-weight: 500; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.cook-ingredients-toggle .ic { transition: transform 0.2s; color: rgba(250,247,242,0.6); }
+.cook-ingredients-toggle.open .ic { transform: rotate(180deg); }
+.cook-ingredients-panel {
+  margin: 6px 16px 0; background: rgba(255,255,255,0.05); border-radius: 12px;
+  overflow: hidden; max-height: 0; transition: max-height 0.3s var(--ease); flex-shrink: 0;
+}
+.cook-ingredients-panel.open { max-height: 40vh; overflow-y: auto; }
+.cook-ing-item { padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.92rem; color: rgba(250,247,242,0.85); display: flex; align-items: baseline; gap: 10px; line-height: 1.4; }
+.cook-ing-item::before { content: '·'; color: var(--accent); font-size: 1.3rem; flex-shrink: 0; line-height: 0.6; }
+.cook-ing-item.heading { font-family: var(--serif); font-style: italic; color: rgba(250,247,242,0.6); padding-top: 14px; }
+.cook-ing-item.heading::before { content: none; }
+.cook-ing-item:last-child { border-bottom: none; }
+.cook-steps {
+  flex: 1 1 auto; min-height: 0; overflow-y: scroll; overscroll-behavior-y: contain;
+  padding: 8px 20px calc(48px + var(--safe-bot));
+}
+.cook-step {
+  padding: 22px 0 22px 54px; position: relative; border-bottom: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer; transition: opacity 0.2s;
+}
+.cook-step:active { opacity: 0.7; }
+.cook-step.done { opacity: 0.35; }
+.cook-step.done .cook-step-text { text-decoration: line-through; text-decoration-color: rgba(250,247,242,0.5); }
+.cook-step-num {
+  position: absolute; left: 0; top: 22px; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-family: var(--serif); font-size: 1rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+}
+.cook-step.done .cook-step-num { background: rgba(255,255,255,0.15); }
+.cook-step-text { font-size: 1.12rem; line-height: 1.7; color: var(--cream); }
+.cook-step .qty { color: #e7b48f; font-weight: 600; white-space: nowrap; }
+.cook-done-note { text-align: center; padding: 28px 0 12px; font-family: var(--serif); font-style: italic; color: rgba(250,247,242,0.55); font-size: 1.05rem; }
+
 @media print {
-  #lockScreen, header, .fab-wrap, .fab-backdrop, .detail-header, .scale-row, .section-hint, .detail-foot, .toast { display: none !important; }
+  #lockScreen, header, .fab-wrap, .fab-backdrop, .detail-header, .detail-cta, .cook-view, .scale-row, .section-hint, .detail-foot, .toast { display: none !important; }
   .detail-scroll { padding: 0; overflow: visible; }
   .detail-view { position: static; display: block !important; }
   body, html { position: static; overflow: visible; background: #fff; }
@@ -659,6 +727,7 @@ textarea.mono { font-size: 0.92rem; }
   <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 3 20h18L12 4ZM12 10v4M12 17v.5"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></symbol>
+  <symbol id="i-chef" viewBox="0 0 24 24"><path d="M7 19h10M7 19v-5.5M17 19v-5.5M7 13.5a4 4 0 1 1 1.2-7.8 4.5 4.5 0 0 1 7.6 0A4 4 0 1 1 17 13.5"/><path d="M7 13.5h10"/></symbol>
   <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.5 6.5l2 2M15.5 15.5l2 2M6.5 17.5l2-2M15.5 8.5l2-2"/></symbol>
 </svg>
 
@@ -755,6 +824,24 @@ textarea.mono { font-size: 0.92rem; }
     </div>
   </div>
   <div class="detail-scroll" id="detailScroll"></div>
+  <div class="detail-cta">
+    <button class="btn" onclick="startCookMode()"><svg class="ic"><use href="#i-chef"/></svg> Start cooking</button>
+  </div>
+</div>
+
+<!-- ── Cook mode ── -->
+<div class="cook-view" id="cookView">
+  <div class="cook-header">
+    <div class="cook-head-text">
+      <div class="cook-eyebrow" id="cookEyebrow">Cooking</div>
+      <div class="cook-title" id="cookTitle"></div>
+    </div>
+    <button class="cook-exit" onclick="exitCookMode()"><svg class="ic ic-sm"><use href="#i-close"/></svg> Done</button>
+  </div>
+  <div class="cook-progress"><span id="cookProgress"></span></div>
+  <button class="cook-ingredients-toggle" id="cookIngToggle" onclick="toggleCookIngredients()"><span>Ingredients</span><svg class="ic"><use href="#i-down"/></svg></button>
+  <div class="cook-ingredients-panel" id="cookIngPanel"></div>
+  <div class="cook-steps" id="cookSteps"></div>
 </div>
 
 <!-- ── Add/Edit/Review Modal ── -->
@@ -1443,8 +1530,103 @@ function scaleStep(step, scale, keywords) {
   });
 }
 
-function closeDetail() { document.getElementById('detailView').classList.remove('open'); currentId = null; }
+function closeDetail() { exitCookMode(); document.getElementById('detailView').classList.remove('open'); currentId = null; }
 function editCurrent() { if (currentId) openEditModal(currentId); }
+
+// ── Cook mode ─────────────────────────────────────────────
+//
+// Dark, large-type, tap-to-tick steps with the screen kept awake. Uses the
+// current scale, so 2× in the detail view means 2× here. Steps are escaped
+// first, then quantities are woven in as <span class="qty"> badges for
+// recipes whose steps don't already state them inline.
+
+let wakeLock = null;
+let cookTotal = 0;
+
+const WEAVE_UNITS = 'g|kg|mg|ml|l|cups?|tbsp|tsp|oz|lbs?|cloves?|bunch(?:es)?|handfuls?|pinch(?:es)?|slices?|pieces?|cans?|tins?|sprigs?|sticks?|sheets?|heads?';
+const WEAVE_QTY_RE = new RegExp('^([\\d\\/\\.\\s¼½¾⅓⅔⅛⅜⅝⅞]+(?:' + WEAVE_UNITS + ')?)\\s*(?:(?:large|small|medium|big|ripe|fresh|whole)\\s+)*', 'i');
+const escRe = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function weaveQuantities(stepsHtml, ingredients) {
+  const pairs = [];
+  ingredients.forEach(ing => {
+    const m = ing.match(WEAVE_QTY_RE);
+    if (!m) return;
+    const qty  = m[1].trim();
+    const name = ing.slice(m[0].length).split(',')[0].replace(/\(.*?\)/g, '').trim().toLowerCase();
+    if (!qty || !/\d|[¼½¾⅓⅔⅛⅜⅝⅞]/.test(qty) || name.length < 3) return;
+    const escName = esc(name);
+    pairs.push({
+      qty: esc(qty),
+      nameRe:   new RegExp(`\\b(${escRe(escName)})\\b`, 'i'),
+      statedRe: new RegExp(`\\b${escRe(esc(qty))}\\b(?:\\s+\\S+){0,3}?\\s*${escRe(escName)}`, 'i')
+    });
+  });
+  return stepsHtml.map(step => {
+    let result = step;
+    pairs.forEach(p => {
+      if (p.statedRe.test(step)) return;                   // "8 large potatoes" already stated as "8 potatoes"
+      if (result.includes(`(${p.qty})`)) return;           // already woven
+      if (p.nameRe.test(result)) result = result.replace(p.nameRe, `$1 <span class="qty">(${p.qty})</span>`);
+    });
+    return result;
+  });
+}
+
+async function startCookMode() {
+  const r = allRecipes.find(x => x.id === currentId);
+  if (!r) return;
+  const ingredients  = (r.ingredients  || '').split('\n').filter(Boolean);
+  const instructions = (r.instructions || '').split('\n').filter(Boolean);
+  const scaled = currentScale === 1 ? ingredients : ingredients.map(i => scaleIngredient(i, currentScale));
+  const keywords = extractIngredientKeywords(r.ingredients || '');
+  const stepsHtml = weaveQuantities(instructions.map(s => esc(scaleStep(s, currentScale, keywords))), scaled.filter(i => !/:\s*$/.test(i)));
+
+  document.getElementById('cookTitle').textContent = r.title;
+  document.getElementById('cookEyebrow').textContent = currentScale === 1 ? 'Cooking' : `Cooking at ${currentScale}×`;
+  document.getElementById('cookIngPanel').innerHTML = scaled.length
+    ? scaled.map(i => /:\s*$/.test(i) && !/^\d/.test(i) ? `<div class="cook-ing-item heading">${esc(i)}</div>` : `<div class="cook-ing-item">${esc(i)}</div>`).join('')
+    : '<div class="cook-ing-item" style="color:var(--muted)">No ingredients listed.</div>';
+  document.getElementById('cookSteps').innerHTML = stepsHtml.length
+    ? stepsHtml.map((s, i) => `<div class="cook-step" onclick="toggleStep(this)"><div class="cook-step-num">${i + 1}</div><div class="cook-step-text">${s}</div></div>`).join('') + '<div class="cook-done-note" id="cookDoneNote"></div>'
+    : '<p style="color:rgba(250,247,242,0.5);padding:24px 0;font-family:var(--serif);font-style:italic">No steps listed.</p>';
+  cookTotal = stepsHtml.length;
+  document.getElementById('cookIngToggle').classList.remove('open');
+  document.getElementById('cookIngPanel').classList.remove('open');
+  updateCookProgress();
+  document.getElementById('cookView').classList.add('open');
+  document.getElementById('cookSteps').scrollTop = 0;
+  await requestWakeLock();
+}
+
+function updateCookProgress() {
+  const done = document.querySelectorAll('.cook-step.done').length;
+  document.getElementById('cookProgress').style.width = cookTotal ? (done / cookTotal * 100) + '%' : '0';
+  const note = document.getElementById('cookDoneNote');
+  if (note) note.textContent = cookTotal && done === cookTotal ? 'All done. Bom apetite.' : (done ? `${done} of ${cookTotal} steps done` : '');
+}
+
+function toggleStep(el) { el.classList.toggle('done'); updateCookProgress(); }
+
+function toggleCookIngredients() {
+  document.getElementById('cookIngToggle').classList.toggle('open');
+  document.getElementById('cookIngPanel').classList.toggle('open');
+}
+
+function exitCookMode() {
+  document.getElementById('cookView').classList.remove('open');
+  releaseWakeLock();
+}
+
+async function requestWakeLock() {
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { wakeLock = null; }
+}
+function releaseWakeLock() {
+  if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && document.getElementById('cookView').classList.contains('open')) requestWakeLock();
+});
 
 // ── Share ─────────────────────────────────────────────────
 function shareRecipe() {
