@@ -1003,7 +1003,7 @@ function withTimeout(ms) {
   return { signal: ctrl.signal, done: () => clearTimeout(t) };
 }
 
-async function postAPI(params, timeoutMs = 30000) {
+async function postAPI(params, timeoutMs = 60000) {
   const to = withTimeout(timeoutMs);
   try {
     const res = await fetch(SCRIPT_URL, {
@@ -1029,7 +1029,7 @@ async function postJSON(params, timeoutMs = 120000) {
   } finally { to.done(); }
 }
 
-async function getAPI(params, timeoutMs = 30000) {
+async function getAPI(params, timeoutMs = 75000) {
   const to = withTimeout(timeoutMs);
   try {
     const res = await fetch(SCRIPT_URL + '?' + new URLSearchParams(params).toString(), { signal: to.signal });
@@ -1038,7 +1038,7 @@ async function getAPI(params, timeoutMs = 30000) {
 }
 
 function describeError(e) {
-  if (e && e.name === 'AbortError') return 'That took too long and timed out.';
+  if (e && e.name === 'AbortError') return 'The server took too long to answer. It can be slow to wake up — try again.';
   if (navigator.onLine === false) return 'You look offline. Check your connection.';
   if (e && /Failed to fetch|NetworkError|Load failed/i.test(e.message || '')) return 'Couldn\'t reach the server. Check your connection.';
   return (e && e.message) || 'Something went wrong.';
@@ -1129,7 +1129,13 @@ async function loadRecipes() {
   }
 
   try {
-    const data = await getAPI({ action: 'list' });
+    let data;
+    try { data = await getAPI({ action: 'list' }); }
+    catch (first) {
+      // Apps Script cold starts can be slow or drop the first request; retry once before giving up.
+      if (first.name !== 'AbortError' && navigator.onLine === false) throw first;
+      data = await getAPI({ action: 'list' });
+    }
     if (!data.success) throw new Error(data.error || 'Could not load');
     allRecipes = data.recipes || [];
     localStorage.setItem(CACHE_KEY, JSON.stringify(allRecipes));
