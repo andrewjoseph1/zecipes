@@ -1837,7 +1837,7 @@ function stagedStatus(id, stages) {
 
 function importFailureHint(data) {
   switch (data.code) {
-    case 'BLOCKED':    return 'Every route was refused by this site. Copy the page text and paste it instead — that always works.';
+    case 'BLOCKED':    return 'Every route was refused by this site. Open the page in Safari and use Share → Send to Zecipes, or copy the text and paste it here.';
     case 'UNREACHABLE': return 'The page didn\'t give readable recipe text on any route. Paste the text instead.';
     case 'EMPTY':      return 'Try pasting the recipe text instead.';
     case 'API_BUSY':   return 'The AI service is busy. Wait a moment and try again.';
