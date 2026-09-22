@@ -518,11 +518,17 @@ function importFromUrl(url) {
     if (out.code === 'API_AUTH' || out.code === 'CONFIG' || out.code === 'API_BUSY') return out;
   }
 
-  // 4. Let Claude fetch the page itself
-  const viaClaude = importViaClaudeFetch(url);
-  if (viaClaude.success) { viaClaude.via = 'web_fetch'; logEvent('INFO', 'importUrl', 'OK via web_fetch in ' + (Date.now() - started) + 'ms: ' + viaClaude.recipe.title); return viaClaude; }
-  tried.push('web_fetch:' + (viaClaude.code || '?'));
-  if (viaClaude.code === 'API_AUTH' || viaClaude.code === 'CONFIG') return viaClaude;
+  // 4. Let Claude fetch the page itself — unless the publisher answered 402/451,
+  //    which means it walls off automated readers and Anthropic's fetcher will be
+  //    refused too (that refusal alone costs ~100s).
+  if (!walled) {
+    const viaClaude = importViaClaudeFetch(url);
+    if (viaClaude.success) { viaClaude.via = 'web_fetch'; logEvent('INFO', 'importUrl', 'OK via web_fetch in ' + (Date.now() - started) + 'ms: ' + viaClaude.recipe.title); return viaClaude; }
+    tried.push('web_fetch:' + (viaClaude.code || '?'));
+    if (viaClaude.code === 'API_AUTH' || viaClaude.code === 'CONFIG') return viaClaude;
+  } else {
+    tried.push('web_fetch:skipped');
+  }
 
   logEvent('WARN', 'importUrl', 'All routes failed in ' + (Date.now() - started) + 'ms for ' + url + ' — ' + tried.join(', '));
   let host = url; try { host = url.split('/')[2].replace(/^www\./, ''); } catch (e) {}
