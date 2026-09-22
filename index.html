@@ -1878,11 +1878,11 @@ async function runUrlImport() {
   const stop = stagedStatus('urlStatus', [
     ['Fetching the page…', host],
     ['Reading the recipe…', 'Usually 10–20 seconds'],
-    ['Trying another route…', 'Some sites refuse the first attempt'],
-    ['Still working…', 'Up to four routes are tried before giving up']
+    ['Trying other routes…', 'Some sites refuse the first attempt'],
+    ['Still working…', 'Stubborn sites can take a couple of minutes']
   ]);
   try {
-    const data = await postJSON({ action: 'import', url });
+    const data = await postJSON({ action: 'import', url }, 200000);
     stop();
     if (data.success && data.recipe) {
       setStatus('urlStatus', 'ok', 'Got it', data.recipe.title || '');
