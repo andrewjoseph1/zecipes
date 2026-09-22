@@ -448,6 +448,17 @@ function routeResult(name, res) {
     if (text.length < 400) return { fail: 'EMPTY' };
     return { text: text };
   }
+  if (name === 'wayback') {
+    let snap = null;
+    try { const j = JSON.parse(res.body); snap = j && j.archived_snapshots && j.archived_snapshots.closest; } catch (e) { return { fail: 'BAD_JSON' }; }
+    if (!snap || !snap.available || !snap.url) return { fail: 'NO_SNAPSHOT' };
+    let page;
+    try { page = fetchPage(snap.url.replace(/\/web\/(\d+)\//, '/web/$1id_/')); }
+    catch (e) { return { fail: 'FETCH_FAILED', note: e.message }; }
+    if (page.status >= 400) return { fail: 'HTTP_' + page.status };
+    const r = pageToRecipeText(page.body);
+    return r.text ? { text: r.text } : { fail: r.fail };
+  }
   const r = pageToRecipeText(res.body);
   return r.text ? { text: r.text } : { fail: r.fail };
 }
@@ -458,7 +469,9 @@ function fetchRoutesInParallel(url) {
   const reqs = [
     { name: 'direct',  url: url, headers: BROWSER_HEADERS },
     { name: 'jina',    url: 'https://r.jina.ai/' + url, headers: { 'Accept': 'text/plain', 'X-Return-Format': 'text' } },
-    { name: 'wayback', url: 'https://web.archive.org/web/2id_/' + url, headers: BROWSER_HEADERS }
+    // Availability API answers in about a second; fetching a snapshot that
+    // doesn't exist can hang for the full UrlFetch limit (~100s).
+    { name: 'wayback', url: 'https://archive.org/wayback/available?url=' + encodeURIComponent(url), headers: { 'Accept': 'application/json' } }
   ];
   const t0 = Date.now();
   let responses;
@@ -491,13 +504,14 @@ function importFromUrl(url) {
 
   const tried = [];
   let sawBlock = false;
+  let walled = false;
 
   // 1–3 in parallel: direct, Jina Reader, Wayback Machine
   const results = fetchRoutesInParallel(url);
-  logEvent('INFO', 'importUrl', 'Fetched in ' + results[0].ms + 'ms — ' + results.map(r => r.name + ':' + (r.text ? 'ok(' + r.text.length + ')' : r.fail + (r.status ? '/' + r.status : ''))).join(', '));
+  logEvent('INFO', 'importUrl', 'Fetched in ' + results[0].ms + 'ms — ' + results.map(r => r.name + ':' + (r.text ? 'ok(' + r.text.length + ')' : r.fail + (r.status ? '/' + r.status : '') + (r.note ? ' (' + String(r.note).slice(0, 60) + ')' : ''))).join(', '));
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
-    if (!r.text) { tried.push(r.name + ':' + r.fail); if (r.fail === 'BLOCKED') sawBlock = true; continue; }
+    if (!r.text) { tried.push(r.name + ':' + r.fail); if (r.fail === 'BLOCKED') sawBlock = true; if (r.status === 402 || r.status === 451) walled = true; continue; }
     const out = callClaudeWithText(r.text.slice(0, TEXT_CHAR_LIMIT), url, 'importUrl');
     if (out.success) { out.via = r.name; logEvent('INFO', 'importUrl', 'OK via ' + r.name + ' in ' + (Date.now() - started) + 'ms: ' + out.recipe.title); return out; }
     tried.push(r.name + ':' + (out.code || 'claude'));
@@ -511,12 +525,13 @@ function importFromUrl(url) {
   if (viaClaude.code === 'API_AUTH' || viaClaude.code === 'CONFIG') return viaClaude;
 
   logEvent('WARN', 'importUrl', 'All routes failed in ' + (Date.now() - started) + 'ms for ' + url + ' — ' + tried.join(', '));
+  let host = url; try { host = url.split('/')[2].replace(/^www\./, ''); } catch (e) {}
   return {
     success: false,
-    code: sawBlock ? 'BLOCKED' : 'UNREACHABLE',
+    code: (walled || sawBlock) ? 'BLOCKED' : 'UNREACHABLE',
     fallback: 'paste',
     tried: tried,
-    error: sawBlock ? 'This site blocks automated readers, even through the fallbacks.' : 'Couldn\'t get readable recipe text from that page.'
+    error: walled ? host + ' walls off every automated reader.' : sawBlock ? 'This site blocks automated readers, even through the fallbacks.' : 'Couldn\'t get readable recipe text from that page.'
   };
 }
 
@@ -646,6 +661,21 @@ function importFromText(text, url) {
   }
   return callClaudeWithText(clean.slice(0, TEXT_CHAR_LIMIT), url, 'importText');
 }
+
+// With autosave, an import lands in the book immediately and the response
+// carries the new id, so a caller with no review UI (the iOS Shortcut) can
+// open the recipe straight away via ?recipe=<id>.
+function maybeAutosave(result, autosave) {
+  if (!result.success || !isTruthy(autosave)) return result;
+  const saved = addRecipe(result.recipe);
+  result.id = saved.id;
+  result.saved = true;
+  result.open_url = 'https://zecipes.andrewgoncalves.com/?recipe=' + saved.id;
+  logEvent('INFO', 'autosave', 'Saved via import: ' + result.recipe.title);
+  return result;
+}
+
+function isTruthy(v) { return v === true || v === 1 || /^(1|true|yes)$/i.test(String(v || '')); }
 
 function callClaudeWithText(text, url, action) {
   const content = [{ type: 'text', text: recipePrompt() + '\n\nText:\n' + text }];
@@ -888,8 +918,8 @@ function doPost(e) {
     if (action === 'update') return jsonResponse(updateRecipe(p));
     if (action === 'delete') return jsonResponse(deleteRecipe(p.id));
 
-    if (action === 'import')           return jsonResponse(importFromUrl(p.url));
-    if (action === 'importText')       return jsonResponse(importFromText(p.text, p.url));
+    if (action === 'import')           return jsonResponse(maybeAutosave(importFromUrl(p.url), p.autosave));
+    if (action === 'importText')       return jsonResponse(maybeAutosave(importFromText(p.text, p.url), p.autosave));
     if (action === 'importFromImages') return jsonResponse(importFromImages(p));
 
     if (action === 'setMealplan')    return jsonResponse(setMealplan(p.date, p.recipe_id, p.meal_slot || 'dinner'));
