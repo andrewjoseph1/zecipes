@@ -1837,7 +1837,8 @@ function stagedStatus(id, stages) {
 
 function importFailureHint(data) {
   switch (data.code) {
-    case 'BLOCKED':    return 'Some sites refuse automated readers. Copy the page text and paste it instead — that always works.';
+    case 'BLOCKED':    return 'Every route was refused by this site. Copy the page text and paste it instead — that always works.';
+    case 'UNREACHABLE': return 'The page didn\'t give readable recipe text on any route. Paste the text instead.';
     case 'EMPTY':      return 'Try pasting the recipe text instead.';
     case 'API_BUSY':   return 'The AI service is busy. Wait a moment and try again.';
     case 'API_AUTH':   return 'The Anthropic API key in the config sheet was rejected.';
@@ -1877,7 +1878,8 @@ async function runUrlImport() {
   const stop = stagedStatus('urlStatus', [
     ['Fetching the page…', host],
     ['Reading the recipe…', 'Usually 10–20 seconds'],
-    ['Still working…', 'Long pages take a little longer']
+    ['Trying another route…', 'Some sites refuse the first attempt'],
+    ['Still working…', 'Up to four routes are tried before giving up']
   ]);
   try {
     const data = await postJSON({ action: 'import', url });

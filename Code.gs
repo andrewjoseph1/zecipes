@@ -398,6 +398,75 @@ function htmlToText(html) {
 }
 
 // ── URL Import ────────────────────────────────────────────
+//
+// Apps Script's UrlFetchApp sends its own User-Agent (custom ones are
+// ignored) from Google IP ranges, and many recipe publishers refuse it.
+// So the page is fetched through a chain of routes, cheapest first, and
+// the first one that yields readable recipe text wins:
+//   1. direct fetch from Apps Script
+//   2. Jina Reader (r.jina.ai) — renders the page and returns its text
+//   3. Claude fetching the page itself (web_fetch server tool)
+//   4. the Wayback Machine's latest snapshot
+// Only when all four fail does the app offer paste-import.
+
+const BROWSER_HEADERS = {
+  'User-Agent':      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.8,pt;q=0.6'
+};
+
+function fetchPage(url, headers) {
+  const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true, headers: headers || BROWSER_HEADERS });
+  return { status: res.getResponseCode(), body: res.getContentText() };
+}
+
+function looksBlocked(text) {
+  const lower = String(text || '').slice(0, 3000).toLowerCase();
+  return /just a moment|verify you are human|access denied|enable javascript and cookies|captcha|are you a robot|attention required|request blocked|pardon our interruption|403 forbidden/.test(lower);
+}
+
+// HTML page -> { text } | { fail: 'BLOCKED' | 'EMPTY' }
+function pageToRecipeText(html) {
+  const jsonLd = extractJsonLd(html);
+  if (jsonLd) return { text: jsonLd };
+  const text = htmlToText(html);
+  if (looksBlocked(text)) return { fail: 'BLOCKED' };
+  if (text.length < 400) return { fail: 'EMPTY' };
+  return { text: text };
+}
+
+function routeDirect(url) {
+  let page;
+  try { page = fetchPage(url); }
+  catch (e) { return { fail: 'FETCH_FAILED', note: e.message }; }
+  if (page.status >= 400) {
+    const blocked = page.status === 403 || page.status === 401 || page.status === 429 || page.status === 503;
+    return { fail: blocked ? 'BLOCKED' : 'HTTP_' + page.status, status: page.status };
+  }
+  const r = pageToRecipeText(page.body);
+  return r.text ? { text: r.text } : { fail: r.fail, status: page.status };
+}
+
+function routeJina(url) {
+  let page;
+  try {
+    page = fetchPage('https://r.jina.ai/' + url, { 'Accept': 'text/plain', 'X-Return-Format': 'text', 'X-No-Cache': 'false' });
+  } catch (e) { return { fail: 'FETCH_FAILED', note: e.message }; }
+  if (page.status >= 400) return { fail: 'HTTP_' + page.status, status: page.status };
+  const text = normalizeText(page.body);
+  if (looksBlocked(text)) return { fail: 'BLOCKED' };
+  if (text.length < 400) return { fail: 'EMPTY' };
+  return { text: text };
+}
+
+function routeWayback(url) {
+  let page;
+  try { page = fetchPage('https://web.archive.org/web/2id_/' + url); }
+  catch (e) { return { fail: 'FETCH_FAILED', note: e.message }; }
+  if (page.status >= 400) return { fail: 'HTTP_' + page.status, status: page.status };
+  const r = pageToRecipeText(page.body);
+  return r.text ? { text: r.text } : { fail: r.fail };
+}
 
 function importFromUrl(url) {
   url = String(url || '').trim();
@@ -405,57 +474,63 @@ function importFromUrl(url) {
     return { success: false, code: 'BAD_URL', error: 'That doesn\'t look like a web address. It should start with http:// or https://.' };
   }
 
-  let res, html, status;
-  try {
-    res = UrlFetchApp.fetch(url, {
-      muteHttpExceptions: true,
-      followRedirects: true,
-      headers: {
-        'User-Agent':      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.8,pt;q=0.6'
-      }
-    });
-    status = res.getResponseCode();
-    html   = res.getContentText();
-  } catch (e) {
-    logEvent('ERROR', 'importUrl', 'Fetch failed: ' + url + ' — ' + e.message);
-    return { success: false, code: 'FETCH_FAILED', fallback: 'paste', error: 'Couldn\'t reach that site from the server.' };
-  }
+  const tried = [];
+  let sawBlock = false;
 
-  if (status >= 400) {
-    logEvent('WARN', 'importUrl', 'HTTP ' + status + ' for ' + url);
-    const blocked = status === 403 || status === 401 || status === 429 || status === 503;
-    return {
-      success: false,
-      code: blocked ? 'BLOCKED' : 'HTTP_' + status,
-      fallback: 'paste',
-      error: blocked
-        ? 'This site blocks automated readers.'
-        : (status === 404 ? 'That page wasn\'t found (404).' : 'The site returned an error (HTTP ' + status + ').')
-    };
-  }
-
-  const jsonLd = extractJsonLd(html);
-  let text;
-  if (jsonLd) {
-    text = jsonLd;
-  } else {
-    text = htmlToText(html);
-    const lower = text.slice(0, 2000).toLowerCase();
-    const challenge = /just a moment|verify you are human|access denied|enable javascript|captcha|are you a robot|attention required/.test(lower);
-    if (challenge || text.length < 400) {
-      logEvent('WARN', 'importUrl', (challenge ? 'Bot challenge' : 'Thin page') + ' for ' + url);
-      return {
-        success: false,
-        code: challenge ? 'BLOCKED' : 'EMPTY',
-        fallback: 'paste',
-        error: challenge ? 'This site blocks automated readers.' : 'The page didn\'t contain readable recipe text (it may load with JavaScript).'
-      };
+  const routes = [
+    ['direct',  routeDirect],
+    ['jina',    routeJina]
+  ];
+  for (let i = 0; i < routes.length; i++) {
+    const r = routes[i][1](url);
+    if (r.text) {
+      const out = callClaudeWithText(r.text.slice(0, TEXT_CHAR_LIMIT), url, 'importUrl');
+      if (out.success) { out.via = routes[i][0]; logEvent('INFO', 'importUrl', 'via ' + routes[i][0] + ': ' + url); return out; }
+      tried.push(routes[i][0] + ':' + (out.code || 'claude'));
+      if (out.code === 'API_AUTH' || out.code === 'CONFIG' || out.code === 'API_BUSY') return out;
+      continue;
     }
+    tried.push(routes[i][0] + ':' + r.fail);
+    if (r.fail === 'BLOCKED') sawBlock = true;
   }
 
-  return callClaudeWithText(text.slice(0, TEXT_CHAR_LIMIT), url, 'importUrl');
+  // 3. Let Claude fetch the page itself
+  const viaClaude = importViaClaudeFetch(url);
+  if (viaClaude.success) { viaClaude.via = 'web_fetch'; logEvent('INFO', 'importUrl', 'via web_fetch: ' + url); return viaClaude; }
+  tried.push('web_fetch:' + (viaClaude.code || '?'));
+  if (viaClaude.code === 'API_AUTH' || viaClaude.code === 'CONFIG') return viaClaude;
+
+  // 4. Wayback Machine
+  const wb = routeWayback(url);
+  if (wb.text) {
+    const out = callClaudeWithText(wb.text.slice(0, TEXT_CHAR_LIMIT), url, 'importUrl');
+    if (out.success) { out.via = 'wayback'; logEvent('INFO', 'importUrl', 'via wayback: ' + url); return out; }
+    tried.push('wayback:' + (out.code || 'claude'));
+  } else {
+    tried.push('wayback:' + wb.fail);
+  }
+
+  logEvent('WARN', 'importUrl', 'All routes failed for ' + url + ' — ' + tried.join(', '));
+  return {
+    success: false,
+    code: sawBlock ? 'BLOCKED' : 'UNREACHABLE',
+    fallback: 'paste',
+    tried: tried,
+    error: sawBlock ? 'This site blocks automated readers, even through the fallbacks.' : 'Couldn\'t get readable recipe text from that page.'
+  };
+}
+
+// Claude fetches the URL with its own web_fetch tool, then extracts.
+function importViaClaudeFetch(url) {
+  const content = [{
+    type: 'text',
+    text: 'Fetch this recipe page with the web_fetch tool, then extract the recipe from it.\nURL: ' + url + '\n\n' + recipePrompt()
+  }];
+  const result = callClaude(content, 'importUrl:web_fetch', {
+    tools: [{ type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 2, max_content_tokens: 40000 }]
+  });
+  if (result.success) result.recipe.source_url = url;
+  return result;
 }
 
 // ── JSON-LD extraction ────────────────────────────────────
@@ -617,7 +692,8 @@ function stripDataUrl(s) {
 
 // ── Shared Claude call ────────────────────────────────────
 
-function callClaude(content, action) {
+function callClaude(content, action, opts) {
+  opts = opts || {};
   const apiKey = getConfig('ANTHROPIC_API_KEY');
   if (!apiKey) return { success: false, code: 'CONFIG', error: 'ANTHROPIC_API_KEY is missing from the config sheet.' };
 
@@ -625,12 +701,14 @@ function callClaude(content, action) {
   let useStructured = STRUCTURED_OUTPUT_MODELS.test(model);
 
   let response = null, status = 0, lastErr = '';
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const messages = [{ role: 'user', content: content }];
+  for (let attempt = 0; attempt < 4; attempt++) {
     const payload = {
       model:      model,
       max_tokens: 4000,
-      messages:   [{ role: 'user', content: content }]
+      messages:   messages
     };
+    if (opts.tools) payload.tools = opts.tools;
     if (useStructured) payload.output_config = { format: { type: 'json_schema', schema: recipeSchema() } };
 
     let apiRes;
@@ -656,7 +734,14 @@ function callClaude(content, action) {
     try { response = JSON.parse(apiRes.getContentText()); }
     catch (e) { response = null; lastErr = 'Non-JSON API response'; }
 
-    if (status === 200 && response) break;
+    if (status === 200 && response) {
+      // Server-side tool loop hit its iteration cap: resend once so it resumes.
+      if (response.stop_reason === 'pause_turn' && messages.length === 1) {
+        messages.push({ role: 'assistant', content: response.content });
+        continue;
+      }
+      break;
+    }
 
     const msg = response && response.error ? String(response.error.message || '') : ('HTTP ' + status);
     lastErr = msg;
@@ -688,6 +773,11 @@ function callClaude(content, action) {
   if (!response.content || !response.content.length) {
     logEvent('ERROR', action, 'Unexpected response: ' + JSON.stringify(response).slice(0, 300));
     return { success: false, code: 'API_ERROR', error: 'Unexpected response from the AI service.' };
+  }
+  const fetchErr = response.content.find(c => c.type === 'web_fetch_tool_result' && c.content && !Array.isArray(c.content) && c.content.error_code);
+  if (fetchErr) {
+    logEvent('WARN', action, 'web_fetch error: ' + fetchErr.content.error_code);
+    return { success: false, code: 'FETCH_FAILED', error: 'Claude couldn\'t fetch that page (' + fetchErr.content.error_code + ').' };
   }
   const raw = response.content.filter(c => c.type === 'text').map(c => c.text).join('').trim();
   if (response.stop_reason === 'max_tokens') logEvent('WARN', action, 'Output truncated at max_tokens');
